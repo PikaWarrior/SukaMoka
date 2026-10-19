@@ -85,18 +85,14 @@ def escape_markdown_text(text):
     lines = value.splitlines(keepends=True)
     escaped_lines = []
     for line in lines:
-        match = re.match(r"^([ \\t]*)(?:(#{1,6})(?=\\s)|([>+\\-])(?=\\s)|([0-9]+)([.)])(?=\\s)|(-{3,}|_{3,}|\\*{3,})\\s*$)", line)
+        match = re.match(r"^([ \t]*)(?:(#{1,6})(?=\s)|([>+\-])(?=\s)|([0-9]+)([.)])(?=\s)|(-{3,}|_{3,}|\*{3,})\s*$)", line)
         if match:
             prefix = match.group(1)
-            remainder = line[len(prefix):]
-            if remainder and remainder[0] not in "\\\\":
-                line = prefix + "\\\\" + remainder
-            elif match.group(4):
-                marker_end = len(prefix) + len(match.group(4))
-                line = line[:marker_end-1] + "\\\\" + line[marker_end-1:]
+            slash = chr(92)
+            marker_index = len(prefix) + len(match.group(4)) if match.group(4) else len(prefix)
+            line = line[:marker_index] + slash + line[marker_index:]
         escaped_lines.append(line)
     return "".join(escaped_lines)
-
 
 def serialize_xhtml_fragment(node):
     """Serialize an ambiguous inline XHTML subtree without losing ruby structure."""

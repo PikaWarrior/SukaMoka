@@ -78,6 +78,9 @@ def table_code(text):
                .replace("<", "&lt;").replace(">", "&gt;").replace("|", "&#124;"))
     return "<code>" + escaped + "</code>"
 
+def markdown_url(url):
+    return quote(str(url), safe="/:#?&=%+@;,$!~*'")
+
 def escape_markdown_text(text):
     """Escape literal source text for Markdown without changing the plain-text audit layer."""
     value = str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")

@@ -80,7 +80,6 @@ class ExtractorIntegrationTests(unittest.TestCase):
         self.assertIn("COMMENT_TAIL_VISIBLE", markdown)
         self.assertIn("[脚注](#footnote-1)", markdown)
         self.assertIn("<em>強調</em>", markdown)
-        self.assertIn("漢", markdown) if False else None
         self.assertIn("[пауза]", markdown)
         self.assertIn("[[EPUB_IMAGE:v99:xhtml/p-first.xhtml:diagram.png:occ-01]]", markdown)
         self.assertIn("## 見出し1 見出し2", markdown)

@@ -22,6 +22,7 @@ NS = {"opf": OPF, "dc": DC}
 BT = chr(96)
 INDENT = re.compile(r"^[ \t\u3000]+")
 CSS_URL = re.compile(r"""url\(\s*(['"]?)(.*?)\1\s*\)""", re.I)
+CSS_IMPORT = re.compile(r"""@import\s+(?:url\(\s*)?(?:(['"])(.*?)\1|([^\)\s;]+))\s*\)?\s*;""", re.I)
 SEMANTIC = {"b":"strong","strong":"strong","i":"em","em":"em","sup":"sup","sub":"sub","del":"del","s":"s","u":"u","code":"code","mark":"mark"}
 WRAPPERS = set("html head title meta link body div section article main p span a br ruby rb rp rt img image svg g text path rect circle line polyline polygon defs use desc switch foreignObject tspan strong b em i sup sub del s u code mark".split())
 EXTERNAL = {"http","https","data","mailto","tel","javascript"}
@@ -382,11 +383,28 @@ class Extractor:
             except UnicodeDecodeError:
                 css=rec["path"].read_text(encoding="utf-8",errors="replace")
                 self.warnings.append("CSS had replacement decoding: "+rec["relative"])
-            for match in CSS_URL.finditer(css):
+            # Strip comments before parsing imports/URLs so a commented-out @import
+            # (such as style-check.css) is not falsely treated as an active dependency.
+            active_css = re.sub(r"/\*[\s\S]*?\*/", "", css)
+            for match in CSS_IMPORT.finditer(active_css):
+                href=(match.group(2) or match.group(3) or "").strip()
+                target=self.resolve(rec["path"].parent,href)
+                if target is None: continue
+                item={"source":rec["relative"],"kind":"@import","href":href,"target":self.rel(target),"exists":target.is_file()}
+                self.css_refs.append(item)
+                if item["exists"]:
+                    self.mark_ref(item["target"])
+                else:
+                    self.issue("CSS @import target missing: "+rec["relative"]+" -> "+href)
+            for match in CSS_URL.finditer(active_css):
                 href=match.group(2).strip();target=self.resolve(rec["path"].parent,href)
                 if target is None: continue
-                item={"source":rec["relative"],"href":href,"target":self.rel(target),"exists":target.is_file()}
-                self.css_refs.append(item);self.mark_ref(item["target"])
+                item={"source":rec["relative"],"kind":"url()","href":href,"target":self.rel(target),"exists":target.is_file()}
+                self.css_refs.append(item)
+                if item["exists"]:
+                    self.mark_ref(item["target"])
+                else:
+                    self.issue("CSS url() target missing: "+rec["relative"]+" -> "+href)
 
     def mark_ref(self,path):
         for rec in self.manifest:
@@ -801,8 +819,8 @@ class Extractor:
         rows += ["","### XML-комментарии и processing instructions",""]
         rows += ["- "+code(a)+" "+b+": "+table(c) for a,b,c in self.comments] or ["Комментарии не найдены."]
         rows += ["- PI "+code(a)+" "+b+": "+table(c) for a,b,c in self.pis]
-        rows += ["","### CSS url() references",""]
-        rows += ["- "+code(x["source"])+" url("+code(x["href"])+") -> "+code(x["target"])+("" if x["exists"] else " [missing]") for x in self.css_refs] or ["Локальные CSS-ссылки url() не найдены."]
+        rows += ["","### CSS url() и @import references",""]
+        rows += ["- "+code(x["source"])+" "+("@import " if x.get("kind")=="@import" else "url() ")+code(x["href"])+" -> "+code(x["target"])+("" if x["exists"] else " [missing]") for x in self.css_refs] or ["Локальные CSS-ссылки url() и @import не найдены."]
         rows += ["","## Проверка локальных ресурсов и фрагментов","",
             "| Source | Href | Resolved path | Status |","|---|---|---|---|"]
         all_refs = self.references + self.css_refs

@@ -601,7 +601,6 @@ class Extractor:
             image["before"] = r["plain"][max(0, offset-60):offset].replace("\n", " ")
             image["after"] = r["plain"][offset:offset+60].replace("\n", " ")
         empty = not r["plain"].strip() and not r["md"].strip()
-        classes = set((node.get("class") or "").split())
         result = "[пауза]" if empty else r["md"]
         tag = kind(node)
         is_heading = False
@@ -802,7 +801,7 @@ class Extractor:
             "XML-разбор не заменяет проверку готового EPUB. Значение иллюстраций и gaiji автоматически не угадывается; непроверенное изображение отмечено как таковое.", "",
             "## Все файлы item/","",
             "| Путь | Байты | SHA-256 |","|---|---:|---|"]
-        rows += ["| "+code(x["path"])+" | "+str(x["bytes"])+" | "+code(x["sha"])+" |" for x in self.inventory]
+        rows += ["| "+table_code(x["path"])+" | "+str(x["bytes"])+" | "+table_code(x["sha"])+" |" for x in self.inventory]
         rows += ["","## Полный manifest","",
             "| id | href | media-type | Файл найден | Использование |","|---|---|---|---|---|"]
         for item in self.manifest:
@@ -821,7 +820,7 @@ class Extractor:
         for i,x in enumerate(self.spine,1):
             rel=x.get("relative") or "(no manifest match)";st=self.stats.get(rel,{})
             status="XML error" if rel in self.errors else ("not parsed" if rel not in self.docs else ("TOC logged below, not repeated" if self.is_duplicate_toc(self.docs[rel],rel) else "parsed"))
-            rows.append("| "+str(i)+" | "+code(x["idref"])+" | "+code(rel)+" | "+table(status)+" | "+str(st.get("p",0))+" | "+str(st.get("ruby",0))+" | "+str(st.get("rt",0))+" | "+str(st.get("images",0))+" |")
+            rows.append("| "+str(i)+" | "+table_code(x["idref"])+" | "+table_code(rel)+" | "+table(status)+" | "+str(st.get("p",0))+" | "+str(st.get("ruby",0))+" | "+str(st.get("rt",0))+" | "+str(st.get("images",0))+" |")
         rows += ["","## Аудит head/title","",
             "Заголовки XHTML из head — метаданные, а не автоматически видимый текст книги. Все title перечислены ниже; отличающиеся от названия тома, отсутствующие в body, не добавляются в художественный текст и получают поясняющий комментарий в основном Markdown, когда страница входит в spine.",
             "",
@@ -837,7 +836,7 @@ class Extractor:
                     decision="значение встречается в body; сохраняется исходное содержимое body, title отдельно не добавляется"
                 else:
                     decision="не вставлено в художественный текст; метаданные задокументированы"
-                rows.append("| "+code(rel)+" | "+table(value)+" | "+decision+" |")
+                rows.append("| "+table_code(rel)+" | "+table(value)+" | "+decision+" |")
         rows += ["","## Навигационные ссылки","",
             "| Текст | href | Целевой файл |","|---|---|---|"]
         rows += ["| "+table(x["label"])+" | "+table_code(x["href"])+" | "+table_code(x["target"])+" |" for x in self.nav_links]
@@ -855,6 +854,7 @@ class Extractor:
             "- Неизвестных элементов: "+str(len(self.unknown))+"; XML-комментариев: "+str(len(self.comments))+"; processing instructions: "+str(len(self.pis))+".",
             "- Литеральных символов 〔〕 вне rt: "+str(self.literal_brackets)+"; предупреждений: "+str(len(self.warnings))+".",
             "","### Расхождения текстового слоя",""]
+        rows += ["- "+code(x["file"])+" p#"+str(x["p"])+": source="+table(x["source"])+"; rendered="+table(x["rendered"]) for x in self.text_mismatches] or ["Не обнаружены."]
         rows += ["","### Профиль начальных отступов","",
             "Для компактности стандартный отступ из одного U+3000 агрегирован по количеству. Все абзацы без отступа, не похожие на реплики/заголовки, перечислены по номерам; все удалённые отступы нестандартной длины приведены в подробной таблице ниже.",
             "",
@@ -866,6 +866,7 @@ class Extractor:
             "| XHTML | p № | Начальный отступ (repr) | Удалено символов | Классы | Фрагмент после удаления |","|---|---:|---|---:|---|---|"]
         for item in self.indent_audit:
             rows.append("| "+table_code(item["file"])+" | "+str(item["paragraph"])+" | "+table_code(repr(item["leading_indent"]))+" | "+str(item["removed_chars"])+" | "+table_code(" ".join(item["classes"]))+" | "+table(item["sample"])+" |")
+        rows.append("")
         if not self.indent_audit:
             rows.append("Нестандартные удалённые отступы не обнаружены.")
         rows += ["","### Использование CSS-классов в XHTML","",
@@ -874,7 +875,6 @@ class Extractor:
             "| Класс | Элемент | Количество |","|---|---|---:|"]
         for (class_name, tag_name), count in sorted(self.class_tag_usage.items()):
             rows.append("| "+table(class_name)+" | "+table(tag_name)+" | "+str(count)+" |")
-        rows += ["- "+code(x["file"])+" p#"+str(x["p"])+": source="+table(x["source"])+"; rendered="+table(x["rendered"]) for x in self.text_mismatches] or ["Не обнаружены."]
         rows += ["","### Расхождения последовательности ruby-чтений",""]
         rows += ["- "+code(x["file"])+" p#"+str(x["p"])+": source="+table(json.dumps(x["source"],ensure_ascii=False))+"; rendered="+table(json.dumps(x["rendered"],ensure_ascii=False)) for x in self.reading_mismatches] or ["Не обнаружены."]
         rows += ["","### Ruby warnings",""]
@@ -909,8 +909,7 @@ class Extractor:
         if not extra:rows.append("Других XHTML, кроме navigation-документа, вне spine не найдено.")
         for rec in extra:
             rel=rec["relative"];rows += ["### "+code(rel),"","Причина: файл объявлен в manifest, но отсутствует в spine."]
-            if rel==nav_rel:rows.append("Navigation document: ссылки отражены выше, названия использованы при восстановлении заголовков.")
-            elif rel in self.docs:rows += ["","Читаемое тело для аудита:","","~~~text",self.audit_body(self.docs[rel]),"~~~"]
+            if rel in self.docs:rows += ["","Читаемое тело для аудита:","","~~~text",self.audit_body(self.docs[rel]),"~~~"]
         rows += ["","## XHTML spine, не повторённый в основном потоке",""]
         excluded=[x for x in self.spine if x["relative"] in self.docs and self.is_duplicate_toc(self.docs[x["relative"]],x["relative"])]
         if not excluded:rows.append("Повторное текстовое оглавление с несколькими XHTML-ссылками не обнаружено.")

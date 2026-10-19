@@ -160,7 +160,7 @@ class Extractor:
         self.nav_path, self.nav_links = None, []
         self.nav_by_page = defaultdict(list)
         self.images, self.image_counts = [], Counter()
-        self.references, self.css_refs, self.comments, self.pis = [], [], [], []
+        self.references, self.css_refs, self.css_commented_imports, self.comments, self.pis = [], [], [], [], []
         self.unknown, self.ruby_issues, self.text_mismatches, self.reading_mismatches = [], [], [], []
         self.main_blocks, self.stats, self.inventory = [], {}, []
         self.class_usage, self.class_tag_usage = Counter(), Counter()
@@ -383,8 +383,19 @@ class Extractor:
             except UnicodeDecodeError:
                 css=rec["path"].read_text(encoding="utf-8",errors="replace")
                 self.warnings.append("CSS had replacement decoding: "+rec["relative"])
-            # Strip comments before parsing imports/URLs so a commented-out @import
-            # (such as style-check.css) is not falsely treated as an active dependency.
+            # Record imports found inside comments separately, but never treat them
+            # as active dependencies (the publisher's style-check.css is an example).
+            for comment in re.finditer(r"/\*([\s\S]*?)\*/", css):
+                for match in CSS_IMPORT.finditer(comment.group(1)):
+                    href=(match.group(2) or match.group(3) or "").strip()
+                    target=self.resolve(rec["path"].parent,href)
+                    if target is None: continue
+                    self.css_commented_imports.append({
+                        "source":rec["relative"],"kind":"commented @import","href":href,
+                        "target":self.rel(target),"exists":target.is_file(),
+                    })
+            # Strip comments before parsing active imports/URLs so commented-out
+            # paths are not falsely treated as active dependencies.
             active_css = re.sub(r"/\*[\s\S]*?\*/", "", css)
             for match in CSS_IMPORT.finditer(active_css):
                 href=(match.group(2) or match.group(3) or "").strip()
@@ -748,6 +759,9 @@ class Extractor:
                 use_status = "локальная ссылка"
             elif item["package_uses"]:
                 use_status = "package metadata: " + ", ".join(item["package_uses"])
+            elif any(ref["target"] == item["relative"] for ref in self.css_commented_imports):
+                comment_sources = sorted({ref["source"] for ref in self.css_commented_imports if ref["target"] == item["relative"]})
+                use_status = "упоминается только в комментарии CSS (@import неактивен): " + ", ".join(comment_sources)
             else:
                 use_status = "не найдено (проверить)"
             rows.append("| "+table(item.get("id"))+" | "+table_code(item.get("href",""))+" | "+table(item.get("media-type"))+" | "+("да" if item["exists"] else "НЕТ")+" | "+table(use_status)+" |")
@@ -819,8 +833,10 @@ class Extractor:
         rows += ["","### XML-комментарии и processing instructions",""]
         rows += ["- "+code(a)+" "+b+": "+table(c) for a,b,c in self.comments] or ["Комментарии не найдены."]
         rows += ["- PI "+code(a)+" "+b+": "+table(c) for a,b,c in self.pis]
-        rows += ["","### CSS url() и @import references",""]
-        rows += ["- "+code(x["source"])+" "+("@import " if x.get("kind")=="@import" else "url() ")+code(x["href"])+" -> "+code(x["target"])+("" if x["exists"] else " [missing]") for x in self.css_refs] or ["Локальные CSS-ссылки url() и @import не найдены."]
+        rows += ["","### CSS url() и активные @import",""]
+        rows += ["- "+code(x["source"])+" "+("@import " if x.get("kind")=="@import" else "url() ")+code(x["href"])+" -> "+code(x["target"])+("" if x["exists"] else " [missing]") for x in self.css_refs] or ["Локальные CSS-ссылки url() и активные @import не найдены."]
+        rows += ["","### Закомментированные CSS @import (неактивные)",""]
+        rows += ["- "+code(x["source"])+" содержит закомментированный @import "+code(x["href"])+" -> "+code(x["target"])+("; файл найден, но подключение неактивно." if x["exists"] else "; целевой файл отсутствует.") for x in self.css_commented_imports] or ["Закомментированные CSS @import не обнаружены."]
         rows += ["","## Проверка локальных ресурсов и фрагментов","",
             "| Source | Href | Resolved path | Status |","|---|---|---|---|"]
         all_refs = self.references + self.css_refs

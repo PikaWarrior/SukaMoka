@@ -72,6 +72,21 @@ def code(text):
 def table(text):
     return str(text if text is not None else "").replace("|",r"\|").replace("\r"," ").replace("\n"," ")
 
+def compact_ranges(numbers):
+    values = sorted(set(numbers))
+    if not values:
+        return "—"
+    groups = []
+    start = previous = values[0]
+    for value in values[1:]:
+        if value == previous + 1:
+            previous = value
+            continue
+        groups.append(str(start) if start == previous else f"{start}-{previous}")
+        start = previous = value
+    groups.append(str(start) if start == previous else f"{start}-{previous}")
+    return ", ".join(groups)
+
 def table_code(text):
     # HTML entities keep literal pipes from splitting Markdown table cells.
     escaped = (str(text if text is not None else "").replace("&", "&amp;")
@@ -84,7 +99,7 @@ def markdown_url(url):
 def escape_markdown_text(text):
     """Escape literal source text for Markdown without changing the plain-text audit layer."""
     value = str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    value = re.sub(r"([\\\x60*_{}\[\]!|])", r"\\\1", value)
+    value = re.sub(r"([\\\x60*_{}\[\]|])", r"\\\1", value)
     lines = value.splitlines(keepends=True)
     escaped_lines = []
     for line in lines:
@@ -149,6 +164,7 @@ class Extractor:
         self.main_blocks, self.stats, self.inventory = [], {}, []
         self.class_usage, self.class_tag_usage = Counter(), Counter()
         self.indent_audit = []
+        self.indent_profile = defaultdict(list)
         self.link_checks = []
         self.package_usage = defaultdict(list)
         self.p_count = self.empty_p = self.br_count = self.em_count = 0
@@ -491,6 +507,23 @@ class Extractor:
     def render_p(self, node, page, pnum):
         raw_base = base_of(node)
         indent_match = INDENT.match(raw_base)
+        leading = indent_match.group(0) if indent_match else ""
+        classes = set((node.get("class") or "").split())
+        if not raw_base.strip():
+            indent_category = "empty/whitespace-only"
+        elif kind(node) in {"h1", "h2", "h3", "h4", "h5", "h6"} or classes.intersection({"font-1em30", "font-1em10"}):
+            indent_category = "heading/style heading"
+        elif leading == "　":
+            indent_category = "one U+3000"
+        elif leading and set(leading) == {"　"}:
+            indent_category = "multiple U+3000"
+        elif leading:
+            indent_category = "ASCII/mixed leading whitespace"
+        else:
+            first_visible = raw_base.lstrip(" \t\r\n\u3000")
+            dialogue_prefixes = "「『（〈【“\"—―-"
+            indent_category = "no indent / dialogue-like" if first_visible and first_visible[0] in dialogue_prefixes else "no indent / other"
+        self.indent_profile[(page, indent_category)].append(pnum)
         before_removed = self.indent_removed
         r = self.render_node(node, page, {"leading": True}, pnum)
         expected = unindent(raw_base)
@@ -506,9 +539,9 @@ class Extractor:
                 "source": source_readings, "rendered": r["readings"],
             })
         removed = self.indent_removed - before_removed
-        if removed:
+        if removed and leading != "　":
             self.indent_audit.append({
-                "file": page, "paragraph": pnum, "leading_indent": indent_match.group(0) if indent_match else "(prefix not at base layer)",
+                "file": page, "paragraph": pnum, "leading_indent": leading or "(prefix not at base layer)",
                 "removed_chars": removed, "sample": r["plain"][:100],
                 "classes": (node.get("class") or "").split(),
             })

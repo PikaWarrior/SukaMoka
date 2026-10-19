@@ -57,6 +57,9 @@ class ExtractorIntegrationTests(unittest.TestCase):
 <p># literal heading</p>
 <p>1. literal numbered paragraph</p>
 <p>===</p>
+<p>* * *</p>
+<p>---</p>
+<p>&gt; literal quote</p>
 <p><ruby>外<ruby>内<rt>うち</rt></ruby><rt>そと</rt></ruby></p>
 <p><br/></p>
 <!-- comment text is omitted, but this tail must survive -->COMMENT_TAIL_VISIBLE
@@ -87,6 +90,9 @@ class ExtractorIntegrationTests(unittest.TestCase):
         self.assertIn(r"\*literal\* \_literal\_", markdown)
         self.assertIn(r"\~\~strike\~\~ &lt;tag&gt; &amp; entity", markdown)
         self.assertIn(r"\===", markdown)
+        self.assertIn(r"\* \* \*", markdown)
+        self.assertIn(r"\---", markdown)
+        self.assertIn("&gt; literal quote", markdown)
         self.assertIn(r"\# literal heading", markdown)
         self.assertIn(r"1\. literal numbered paragraph", markdown)
         self.assertIn("<ruby>外<ruby>内<rt>うち</rt></ruby><rt>そと</rt></ruby>", markdown)

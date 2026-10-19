@@ -31,3 +31,22 @@ jobs:
         run: python -m py_compile tools/extract_epub.py
       - name: Run unit and integration tests
         run: python -m unittest discover -s tests -v
+      - name: Smoke-test actual sources for volumes 4 and 5
+        run: |
+          set +e
+          python tools/extract_epub.py --volume 4 --output-dir "$RUNNER_TEMP/volume4-smoke"
+          volume4_status=$?
+          python tools/extract_epub.py --volume 5 --output-dir "$RUNNER_TEMP/volume5-smoke"
+          volume5_status=$?
+          echo "Volume 4 extractor exit: $volume4_status" >> "$GITHUB_STEP_SUMMARY"
+          echo "Volume 5 extractor exit: $volume5_status" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$volume4_status" -ne 0 ] || [ "$volume5_status" -ne 0 ]; then exit 1; fi
+      - name: Upload real-volume smoke-test outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: extractor-smoke-test-output
+          path: |
+            ${{ runner.temp }}/volume4-smoke/
+            ${{ runner.temp }}/volume5-smoke/
+          if-no-files-found: warn

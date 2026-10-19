@@ -79,9 +79,57 @@ def table_code(text):
     return "<code>" + escaped + "</code>"
 
 def escape_markdown_text(text):
-    # Encode HTML-significant characters and escape CommonMark punctuation.
+    """Escape literal source text for Markdown without changing the plain-text audit layer."""
     value = str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    return re.sub(r"([\\\x60*_{}\[\]()#+\-.!|])", r"\\\1", value)
+    value = re.sub(r"([\\\x60*_{}\[\]!|])", r"\\\1", value)
+    lines = value.splitlines(keepends=True)
+    escaped_lines = []
+    for line in lines:
+        match = re.match(r"^([ \\t]*)(?:(#{1,6})(?=\\s)|([>+\\-])(?=\\s)|([0-9]+)([.)])(?=\\s)|(-{3,}|_{3,}|\\*{3,})\\s*$)", line)
+        if match:
+            prefix = match.group(1)
+            remainder = line[len(prefix):]
+            if remainder and remainder[0] not in "\\\\":
+                line = prefix + "\\\\" + remainder
+            elif match.group(4):
+                marker_end = len(prefix) + len(match.group(4))
+                line = line[:marker_end-1] + "\\\\" + line[marker_end-1:]
+        escaped_lines.append(line)
+    return "".join(escaped_lines)
+
+
+def serialize_xhtml_fragment(node):
+    """Serialize an ambiguous inline XHTML subtree without losing ruby structure."""
+    node_kind = kind(node)
+    if node_kind == "#comment":
+        return "<!-- " + (node.text or "").replace("--", "- -") + " -->"
+    if node_kind == "#pi":
+        return ""
+    if node_kind == "#entity":
+        return str(node)
+    attrs = []
+    for key, value in node.attrib.items():
+        qname = etree.QName(key)
+        if qname.namespace == "http://www.w3.org/1999/xlink":
+            name = "xlink:" + qname.localname
+        elif qname.namespace == "http://www.w3.org/XML/1998/namespace":
+            name = "xml:" + qname.localname
+        else:
+            name = qname.localname
+        escaped_value = (value.replace("&", "&amp;").replace('"', "&quot;")
+                         .replace("<", "&lt;").replace(">", "&gt;"))
+        attrs.append(" " + name + '="' + escaped_value + '"')
+    if node_kind in {"img", "br"} and not len(node) and not (node.text or ""):
+        return "<" + node_kind + "".join(attrs) + " />"
+    output = "<" + node_kind + "".join(attrs) + ">"
+    if node.text:
+        output += (node.text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+    for child in node:
+        output += serialize_xhtml_fragment(child)
+        if child.tail:
+            output += child.tail.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    output += "</" + node_kind + ">"
+    return output
 
 class Extractor:
     def __init__(self, volume, root, output_dir, allow_partial=False, github_repo="PikaWarrior/SukaMoka", github_ref="main"):
@@ -343,6 +391,21 @@ class Extractor:
         if t=="br":
             self.br_count+=1;return {"md":"  \n","plain":"\n","readings":[],"images":[]}
         if t=="ruby":
+            nested_ruby = node.xpath(".//*[local-name()='ruby']")
+            nested_images = node.xpath(".//*[local-name()='img' or local-name()='image']")
+            if nested_ruby and not nested_images:
+                readings = [text_of(rt) for rt in node.xpath(".//*[local-name()='rt']")]
+                self.ruby_issues.append({
+                    "file": page, "path": node.getroottree().getpath(node),
+                    "issue": "nested ruby preserved as minimal XHTML to avoid reassigning readings",
+                    "text": base_of(node)[:160],
+                })
+                return {
+                    "md": serialize_xhtml_fragment(node),
+                    "plain": base_of(node),
+                    "readings": readings,
+                    "images": [],
+                }
             out={"md":"","plain":"","readings":[],"images":[]};buffer=[];seen=0
             for typ,obj in self.ruby_tokens(node):
                 if typ!="rt":buffer.append((typ,obj));continue

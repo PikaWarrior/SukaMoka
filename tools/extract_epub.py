@@ -709,6 +709,10 @@ class Extractor:
         extra=self.extra_xhtml
         unused=[x for x in self.manifest if not x["referenced"] and not x["package_uses"]]
         marked={x["resource"] for x in self.images}
+        indent_removed_paragraphs = sum(
+            len(pnums) for (_, category), pnums in self.indent_profile.items()
+            if category in {"one U+3000", "multiple U+3000", "ASCII/mixed leading whitespace"}
+        )
         img_manifest={x["relative"] for x in self.manifest if str(x.get("media-type","")).startswith("image/")}
         unmarked=sorted(img_manifest-marked)
         non_manifest=sorted(x for x in disk if x not in {r["relative"] for r in self.manifest} and x!="standard.opf")
@@ -759,7 +763,7 @@ class Extractor:
             "- Spine items: "+str(len(self.spine))+"; сопоставлены с manifest: "+str(sum(bool(x["record"]) for x in self.spine))+".",
             "- Абзацы p в основном потоке: "+str(self.p_count)+"; пустых p, отмеченных [пауза]: "+str(self.empty_p)+".",
             "- br-элементов: "+str(self.br_count)+"; em-sesame: "+str(self.em_count)+".",
-            "- Начальных отступов снято: "+str(self.indent_removed)+" символов в "+str(len(self.indent_audit))+" абзацах.",
+            "- Начальных отступов снято: "+str(self.indent_removed)+" символов в "+str(indent_removed_paragraphs)+" абзацах; нестандартных случаев подробно перечислено: "+str(len(self.indent_audit))+".",
             "- CSS-классов в XHTML: "+str(len(self.class_usage))+" уникальных имён; подробности приведены ниже.",
             "- Проверено внутренних ссылок/фрагментов: "+str(len(self.link_checks))+"; проблемных: "+str(sum(1 for x in self.link_checks if x["status"] != "OK"))+".",
             "- Маркеров изображений: "+str(len(self.images))+"; уникальных ресурсов в маркерах: "+str(len(marked))+".",
@@ -768,14 +772,19 @@ class Extractor:
             "- Неизвестных элементов: "+str(len(self.unknown))+"; XML-комментариев: "+str(len(self.comments))+"; processing instructions: "+str(len(self.pis))+".",
             "- Литеральных символов 〔〕 вне rt: "+str(self.literal_brackets)+"; предупреждений: "+str(len(self.warnings))+".",
             "","### Расхождения текстового слоя",""]
-        rows += ["","### Удалённые начальные отступы","",
-            "Ниже перечислены все абзацы, где скрипт удалял начальный оформительский отступ.",
+        rows += ["","### Профиль начальных отступов","",
+            "Для компактности стандартный отступ из одного U+3000 агрегирован по количеству. Все абзацы без отступа, не похожие на реплики/заголовки, перечислены по номерам; все удалённые отступы нестандартной длины приведены в подробной таблице ниже.",
             "",
+            "| XHTML | Категория | Количество p | Номера p (для потенциальных исключений) |","|---|---|---:|---|"]
+        for (file_name, category), paragraph_numbers in sorted(self.indent_profile.items()):
+            detail = compact_ranges(paragraph_numbers) if category in {"no indent / other", "multiple U+3000", "ASCII/mixed leading whitespace"} else "сводный учёт"
+            rows.append("| "+table_code(file_name)+" | "+table(category)+" | "+str(len(paragraph_numbers))+" | "+table(detail)+" |")
+        rows += ["","### Подробности нестандартных удалённых отступов","",
             "| XHTML | p № | Начальный отступ (repr) | Удалено символов | Классы | Фрагмент после удаления |","|---|---:|---|---:|---|---|"]
         for item in self.indent_audit:
             rows.append("| "+table_code(item["file"])+" | "+str(item["paragraph"])+" | "+table_code(repr(item["leading_indent"]))+" | "+str(item["removed_chars"])+" | "+table_code(" ".join(item["classes"]))+" | "+table(item["sample"])+" |")
         if not self.indent_audit:
-            rows.append("Начальные отступы не удалялись.")
+            rows.append("Нестандартные удалённые отступы не обнаружены.")
         rows += ["","### Использование CSS-классов в XHTML","",
             "Классы перечислены даже если их оформление не переносится в Markdown; это позволяет заметить потенциально значимые классы.",
             "",

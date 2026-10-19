@@ -63,7 +63,7 @@ XML-разбор не заменяет проверку готового EPUB. �
 | style-reset | <code>style/style-reset.css</code> | text/css | да | локальная ссылка |
 | style-standard | <code>style/style-standard.css</code> | text/css | да | локальная ссылка |
 | style-advance | <code>style/style-advance.css</code> | text/css | да | локальная ссылка |
-| style-check | <code>style/style-check.css</code> | text/css | да | не найдено (проверить) |
+| style-check | <code>style/style-check.css</code> | text/css | да | упоминается только в комментарии CSS (@import неактивен): style/book-style.css |
 | style-karc | <code>style/style-karc.css</code> | text/css | да | локальная ссылка |
 | style-kadokawa | <code>style/style-kadokawa.css</code> | text/css | да | локальная ссылка |
 | cover | <code>image/cover.jpg</code> | image/jpeg | да | локальная ссылка |
@@ -339,13 +339,17 @@ XML-разбор не заменяет проверку готового EPUB. �
 - `xhtml/p-colophon.xhtml` /*/*[2]/*/comment()[1]:  ======================================================================= 
 - `xhtml/p-colophon.xhtml` /*/*[2]/*/comment()[2]:  ======================================================================= 
 
-### CSS url() и @import references
+### CSS url() и активные @import
 
 - `style/book-style.css` @import `style-reset.css` -> `style/style-reset.css`
 - `style/book-style.css` @import `style-standard.css` -> `style/style-standard.css`
 - `style/book-style.css` @import `style-advance.css` -> `style/style-advance.css`
 - `style/book-style.css` @import `style-karc.css` -> `style/style-karc.css`
 - `style/book-style.css` @import `style-kadokawa.css` -> `style/style-kadokawa.css`
+
+### Закомментированные CSS @import (неактивные)
+
+- `style/book-style.css` содержит закомментированный @import `style-check.css` -> `style/style-check.css`; файл найден, но подключение неактивно.
 
 ## Проверка локальных ресурсов и фрагментов
 

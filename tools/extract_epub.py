@@ -438,20 +438,21 @@ class Extractor:
             self.br_count+=1;return {"md":"  \n","plain":"\n","readings":[],"images":[]}
         if t=="ruby":
             nested_ruby = node.xpath(".//*[local-name()='ruby']")
-            nested_images = node.xpath(".//*[local-name()='img' or local-name()='image']")
-            if nested_ruby and not nested_images:
-                readings = [text_of(rt) for rt in node.xpath(".//*[local-name()='rt']")]
+            if nested_ruby:
                 self.ruby_issues.append({
                     "file": page, "path": node.getroottree().getpath(node),
-                    "issue": "nested ruby preserved as minimal XHTML to avoid reassigning readings",
+                    "issue": "nested ruby; source structure retained for manual inspection",
                     "text": base_of(node)[:160],
                 })
-                return {
-                    "md": serialize_xhtml_fragment(node),
-                    "plain": base_of(node),
-                    "readings": readings,
-                    "images": [],
-                }
+                nested_images = node.xpath(".//*[local-name()='img' or local-name()='image']")
+                if not nested_images:
+                    readings = [text_of(rt) for rt in node.xpath(".//*[local-name()='rt']")]
+                    return {
+                        "md": serialize_xhtml_fragment(node),
+                        "plain": base_of(node),
+                        "readings": readings,
+                        "images": [],
+                    }
             out={"md":"","plain":"","readings":[],"images":[]};buffer=[];seen=0
             for typ,obj in self.ruby_tokens(node):
                 if typ!="rt":buffer.append((typ,obj));continue
@@ -482,7 +483,7 @@ class Extractor:
         elif t in SEMANTIC:
             tag=SEMANTIC[t];out["md"]="<"+tag+">"+out["md"]+"</"+tag+">"
         elif t=="a" and node.get("href"):
-            out["md"]="["+out["md"]+"]("+node.get("href")+")"
+            out["md"]="["+out["md"]+"]("+markdown_url(node.get("href"))+")"
         elif t not in WRAPPERS and not t.startswith("#"):
             self.unknown.append({"file":page,"path":node.getroottree().getpath(node),"tag":t,"attributes":dict(node.attrib),"text":out["plain"][:160]})
         return out
@@ -560,7 +561,7 @@ class Extractor:
         if t=="span" and "em-sesame" in classes:return "<em>"+out+"</em>"
         if t in SEMANTIC:
             tag=SEMANTIC[t];return "<"+tag+">"+out+"</"+tag+">"
-        if t=="a" and node.get("href"):return "["+out+"]("+node.get("href")+")"
+        if t=="a" and node.get("href"):return "["+out+"]("+markdown_url(node.get("href"))+")"
         return out
 
     def audit_body(self,tree):
@@ -672,7 +673,7 @@ class Extractor:
         disk={x["path"] for x in self.inventory}
         spine_paths={x["relative"] for x in self.spine if x["relative"]}
         nav_rel=self.rel(self.nav_path) if self.nav_path else ""
-        extra=[x for x in self.manifest if x.get("media-type")=="application/xhtml+xml" and x["relative"] not in spine_paths]
+        extra=self.extra_xhtml
         unused=[x for x in self.manifest if not x["referenced"] and not x["package_uses"]]
         marked={x["resource"] for x in self.images}
         img_manifest={x["relative"] for x in self.manifest if str(x.get("media-type","")).startswith("image/")}

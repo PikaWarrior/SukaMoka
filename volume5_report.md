@@ -60,12 +60,12 @@ XML-разбор не заменяет проверку готового EPUB. �
 | toc | <code>navigation-documents.xhtml</code> | application/xhtml+xml | да | package metadata: EPUB3 navigation |
 | fixed-layout-jp | <code>style/fixed-layout-jp.css</code> | text/css | да | локальная ссылка |
 | book-style | <code>style/book-style.css</code> | text/css | да | локальная ссылка |
-| style-reset | <code>style/style-reset.css</code> | text/css | да | не найдено (проверить) |
-| style-standard | <code>style/style-standard.css</code> | text/css | да | не найдено (проверить) |
-| style-advance | <code>style/style-advance.css</code> | text/css | да | не найдено (проверить) |
+| style-reset | <code>style/style-reset.css</code> | text/css | да | локальная ссылка |
+| style-standard | <code>style/style-standard.css</code> | text/css | да | локальная ссылка |
+| style-advance | <code>style/style-advance.css</code> | text/css | да | локальная ссылка |
 | style-check | <code>style/style-check.css</code> | text/css | да | не найдено (проверить) |
-| style-karc | <code>style/style-karc.css</code> | text/css | да | не найдено (проверить) |
-| style-kadokawa | <code>style/style-kadokawa.css</code> | text/css | да | не найдено (проверить) |
+| style-karc | <code>style/style-karc.css</code> | text/css | да | локальная ссылка |
+| style-kadokawa | <code>style/style-kadokawa.css</code> | text/css | да | локальная ссылка |
 | cover | <code>image/cover.jpg</code> | image/jpeg | да | локальная ссылка |
 | kuchie-001 | <code>image/kuchie-001.jpg</code> | image/jpeg | да | локальная ссылка |
 | kuchie-002 | <code>image/kuchie-002.jpg</code> | image/jpeg | да | локальная ссылка |
@@ -339,9 +339,13 @@ XML-разбор не заменяет проверку готового EPUB. �
 - `xhtml/p-colophon.xhtml` /*/*[2]/*/comment()[1]:  ======================================================================= 
 - `xhtml/p-colophon.xhtml` /*/*[2]/*/comment()[2]:  ======================================================================= 
 
-### CSS url() references
+### CSS url() и @import references
 
-Локальные CSS-ссылки url() не найдены.
+- `style/book-style.css` @import `style-reset.css` -> `style/style-reset.css`
+- `style/book-style.css` @import `style-standard.css` -> `style/style-standard.css`
+- `style/book-style.css` @import `style-advance.css` -> `style/style-advance.css`
+- `style/book-style.css` @import `style-karc.css` -> `style/style-karc.css`
+- `style/book-style.css` @import `style-kadokawa.css` -> `style/style-kadokawa.css`
 
 ## Проверка локальных ресурсов и фрагментов
 
@@ -418,6 +422,11 @@ XML-разбор не заменяет проверку готового EPUB. �
 | <code>xhtml/p-colophon.xhtml</code> | <code>../image/logo-sneaker.png</code> | <code>image/logo-sneaker.png</code> | OK |
 | <code>xhtml/p-bookwalker.xhtml</code> | <code>../style/fixed-layout-jp.css</code> | <code>style/fixed-layout-jp.css</code> | OK |
 | <code>xhtml/p-bookwalker.xhtml</code> | <code>../image/i-bookwalker.jpg</code> | <code>image/i-bookwalker.jpg</code> | OK |
+| <code>style/book-style.css</code> | <code>style-reset.css</code> | <code>style/style-reset.css</code> | OK |
+| <code>style/book-style.css</code> | <code>style-standard.css</code> | <code>style/style-standard.css</code> | OK |
+| <code>style/book-style.css</code> | <code>style-advance.css</code> | <code>style/style-advance.css</code> | OK |
+| <code>style/book-style.css</code> | <code>style-karc.css</code> | <code>style/style-karc.css</code> | OK |
+| <code>style/book-style.css</code> | <code>style-kadokawa.css</code> | <code>style/style-kadokawa.css</code> | OK |
 | <code>navigation-documents.xhtml</code> | <code>xhtml/p-cover.xhtml</code> | <code>xhtml/p-cover.xhtml</code> | OK |
 | <code>navigation-documents.xhtml</code> | <code>xhtml/p-toc-002.xhtml</code> | <code>xhtml/p-toc-002.xhtml</code> | OK |
 | <code>navigation-documents.xhtml</code> | <code>xhtml/p-001.xhtml#toc-001</code> | <code>xhtml/p-001.xhtml</code> | OK |
@@ -515,7 +524,7 @@ XML-разбор не заменяет проверку готового EPUB. �
 | Manifest files missing | 0 | Manifest table/warnings |
 | Spine ids without manifest mapping | 0 | Spine table |
 | XHTML outside spine | 0 | Section above |
-| Manifest items without local reference | 6 | Manifest table |
+| Manifest items without local reference | 1 | Manifest table |
 | Image resources without main-flow marker | 0 | Image map/resource audit |
 | Unmanifested files on disk | 0 | none |
 | Text-layer mismatches | 0 | Full list above |

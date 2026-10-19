@@ -170,11 +170,14 @@ class Extractor:
             if not path or not path.is_file():
                 self.issue("Manifest XHTML missing: " + str(rec.get("href"))); continue
             rel = self.rel(path)
-            try: tree = self.docs.get(rel) or parse(path)
+            try:
+                was_loaded = rel in self.docs
+                tree = self.docs[rel] if was_loaded else parse(path)
             except etree.XMLSyntaxError as exc:
                 self.issue("Cannot parse XHTML " + rel + ": " + str(exc)); self.errors[rel]=str(exc); continue
             self.docs[rel] = tree
-            self.note_tree(rel,tree)
+            if not was_loaded:
+                self.note_tree(rel,tree)
         for item in self.spine:
             rel=item["relative"]
             if not rel: continue
@@ -189,7 +192,7 @@ class Extractor:
 
     def scan_refs(self):
         for rec in self.manifest:
-            if not rec["exists"]: self.warnings.append("Manifest file missing: " + str(rec.get("href")))
+            if not rec["exists"]: self.issue("Manifest file missing: " + str(rec.get("href")))
         for rel,tree in self.docs.items():
             base=(self.item/rel).parent
             for n in walk(tree.getroot()):
@@ -200,6 +203,8 @@ class Extractor:
                     if target is None: continue
                     item={"source":rel,"element":kind(n),"attribute":etree.QName(attr).localname,"href":val,"target":self.rel(target),"exists":target.is_file()}
                     self.references.append(item);self.mark_ref(item["target"])
+                    if not item["exists"]:
+                        self.issue("Referenced local resource missing: " + rel + " " + item["attribute"] + "=" + val + " -> " + item["target"])
         for rec in self.manifest:
             if rec.get("media-type")!="text/css" or not rec.get("path") or not rec["path"].is_file(): continue
             try: css=rec["path"].read_text(encoding="utf-8-sig")
@@ -296,6 +301,8 @@ class Extractor:
             self.em_count+=1;out["md"]="<em>"+out["md"]+"</em>"
         elif t in SEMANTIC:
             tag=SEMANTIC[t];out["md"]="<"+tag+">"+out["md"]+"</"+tag+">"
+        elif t=="a" and node.get("href"):
+            out["md"]="["+out["md"]+"]("+node.get("href")+")"
         elif t not in WRAPPERS and not t.startswith("#"):
             self.unknown.append({"file":page,"path":node.getroottree().getpath(node),"tag":t,"attributes":dict(node.attrib),"text":out["plain"][:160]})
         return out
@@ -342,6 +349,7 @@ class Extractor:
         if t=="span" and "em-sesame" in classes:return "<em>"+out+"</em>"
         if t in SEMANTIC:
             tag=SEMANTIC[t];return "<"+tag+">"+out+"</"+tag+">"
+        if t=="a" and node.get("href"):return "["+out+"]("+node.get("href")+")"
         return out
 
     def audit_body(self,tree):
@@ -415,8 +423,9 @@ class Extractor:
                     else:
                         result=self.render_node(child,rel,{"leading":True})
                         if result["md"].strip():blocks.append(result["md"])
-                        if not isinstance(child,etree._Comment) and child.tail and child.tail.strip():
-                            blocks.append(self.render_text(child.tail,{"leading":True})["md"])
+                    # Element tails belong to the parent's mixed content, even when recursion was used.
+                    if not isinstance(child,etree._Comment) and child.tail and child.tail.strip():
+                        blocks.append(self.render_text(child.tail,{"leading":True})["md"])
             visit(bodies[0])
             self.stats[rel]={"p":len(bodies[0].xpath(".//*[local-name()='p']")),
                 "ruby":len(bodies[0].xpath(".//*[local-name()='ruby']")),"rt":len(bodies[0].xpath(".//*[local-name()='rt']")),
@@ -488,6 +497,13 @@ class Extractor:
         rows += ["- PI "+code(a)+" "+b+": "+table(c) for a,b,c in self.pis]
         rows += ["","### CSS url() references",""]
         rows += ["- "+code(x["source"])+" url("+code(x["href"])+") -> "+code(x["target"])+("" if x["exists"] else " [missing]") for x in self.css_refs] or ["Локальные CSS-ссылки url() не найдены."]
+        rows += ["","## Проверка локальных ссылок","",
+            "| XHTML/CSS source | Href | Resolved path | Status |","|---|---|---|---|"]
+        all_refs = self.references + self.css_refs
+        if not all_refs:
+            rows.append("Локальных ссылок на ресурсы не найдено.")
+        for ref in all_refs:
+            rows.append("| "+code(ref["source"])+" | "+code(ref["href"])+" | "+code(ref["target"])+" | "+("OK" if ref["exists"] else "MISSING")+" |")
         rows += ["","## Карта размещений изображений","",
             "Каждый маркер относится к отдельному occurrence. Ресурс восстанавливается из пути в таблице, позиция — по маркеру и исходному XHTML. Текст внутри изображений этим скриптом не распознаётся.", "",
             "| № | Маркер | Ресурс | XHTML-источник | Тип/статус | Контекст | Атрибуты |","|---:|---|---|---|---|---|---|"]

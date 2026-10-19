@@ -128,7 +128,7 @@ class ExtractorIntegrationTests(unittest.TestCase):
         self.assertIn("Не обнаружены.", mismatch_section)
         self.assertEqual(summary["text_mismatches"], 0)
         self.assertEqual(summary["reading_mismatches"], 0)
-        self.assertEqual(summary["ruby_warnings"], 1)  # nested ruby is deliberately flagged
+        self.assertEqual(summary["ruby_warnings"], 2)  # nested ruby and rt outside ruby are deliberately flagged
         self.assertEqual(summary["parse_errors"], 0)
         self.assertEqual(summary["broken_links"], 0)
         self.assertEqual(summary["image_occurrences"], 1)

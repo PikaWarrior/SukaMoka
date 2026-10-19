@@ -76,7 +76,7 @@ class ExtractorIntegrationTests(unittest.TestCase):
         report = extractor.make_report()
 
         self.assertLess(markdown.index("Second paragraph."), markdown.index("記〔き〕憶〔おく〕"))
-        self.assertIn("TAIL_AFTER_SECOND", markdown)
+        self.assertIn("TAIL" + chr(92) + "_AFTER" + chr(92) + "_SECOND", markdown)
         self.assertIn("COMMENT_TAIL_VISIBLE", markdown)
         self.assertIn("[脚注](#footnote-1)", markdown)
         self.assertIn("<em>強調</em>", markdown)

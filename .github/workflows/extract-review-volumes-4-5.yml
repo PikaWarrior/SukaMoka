@@ -35,10 +35,10 @@ jobs:
         run: |
           set -e
           for volume in 4 5; do
-            out="$RUNNER_TEMP/volume\${volume}-candidate"
+            out="$RUNNER_TEMP/volume$volume-candidate"
             python tools/extract_epub.py --volume "$volume" --output-dir "$out"
-            cp "$out/volume\${volume}.md" "./volume\${volume}.md"
-            cp "$out/volume\${volume}_report.md" "./volume\${volume}_report.md"
+            cp "$out/volume$volume.md" "./volume$volume.md"
+            cp "$out/volume$volume""_report.md" "./volume$volume""_report.md"
           done
           python - <<'PY'
           from pathlib import Path

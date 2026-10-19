@@ -226,7 +226,8 @@ class Extractor:
         target=self.resolve((self.item/page).parent,href)
         res=self.rel(target) if target else (href or "(missing-href)")
         self.image_counts[page]+=1;occ=self.image_counts[page]
-        marker="[[EPUB_IMAGE:v"+str(self.volume)+":xhtml/"+Path(page).name+":"+res+":occ-"+str(occ).zfill(2)+"]]"
+        marker_resource=Path(urlsplit(res).path).name or res
+        marker="[[EPUB_IMAGE:v"+str(self.volume)+":xhtml/"+Path(page).name+":"+marker_resource+":occ-"+str(occ).zfill(2)+"]]"
         attrs={etree.QName(k).localname:v for k,v in node.attrib.items()}
         rec={"marker":marker,"source":page,"resource":res,"href":href,"occ":occ,"element":kind(node),"attributes":attrs,"classes":attrs.get("class","").split(),"before":"","after":"","paragraph":pnum}
         self.images.append(rec)
@@ -416,7 +417,7 @@ class Extractor:
                     pnum[0]+=1;blocks.append(self.render_p(container,rel,pnum[0]));return
                 if t in {"img","image","svg"}:
                     result=self.render_node(container,rel,{"leading":True})
-                    if result["md"]:blocks.append(result["md"])
+                    if result["md"].strip():blocks.append(result["md"].strip())
                     return
                 if getattr(container,"text",None) and container.text.strip():
                     blocks.append(self.render_text(container.text,{"leading":True})["md"])
@@ -425,7 +426,7 @@ class Extractor:
                         visit(child)
                     else:
                         result=self.render_node(child,rel,{"leading":True})
-                        if result["md"].strip():blocks.append(result["md"])
+                        if result["md"].strip():blocks.append(result["md"].strip())
                     # Element tails belong to the parent's mixed content, even when recursion was used.
                     if not isinstance(child,etree._Comment) and child.tail and child.tail.strip():
                         blocks.append(self.render_text(child.tail,{"leading":True})["md"])

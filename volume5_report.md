@@ -9,49 +9,49 @@ XML-разбор не заменяет проверку готового EPUB. �
 
 | Путь | Байты | SHA-256 |
 |---|---:|---|
-| `image/cover.jpg` | 750511 | `586668a870fa20879d43000f18364d3389ed9cbb0c42c4451c6c172a273ee07b` |
-| `image/gaiji-cid776-m-v.png` | 4828 | `f0cb553916bbc0bf12101951150e0b1fe55eaa1ae630981048f8d67317fe7cdf` |
-| `image/i-bookwalker.jpg` | 116828 | `93da8cbcf35fc14c16188ff6e325669b90ced56a14d72ce495631c76c76b6b75` |
-| `image/kuchie-001.jpg` | 666712 | `bd8b04dfa65c4e15c34dd7b9b0e20d29c9978aa22c0c84d7728a10099b666cc6` |
-| `image/kuchie-002.jpg` | 477195 | `79a67b6c70322d8db155f05366c532ce1222a944c11c0ecccb1faf919acb561b` |
-| `image/logo-sneaker.png` | 4267 | `3c68cdfe60118126cac64e2efc73d20294a63b7c1cece9c1adfb59553fa93f88` |
-| `image/p004-005.jpg` | 809815 | `839b5f6566c0fff9f09f983e61793d1d13d2d951ecd2cdc2177b39eefe723a02` |
-| `image/p016-017.jpg` | 1083461 | `5f8a8dce552f3498b983a239ea280503664ab0080b40088d5ea2f7b42a2fefa6` |
-| `image/p100-101.jpg` | 1335750 | `c55df81a39d4c6e94c187e090d323bff504a492b7a1b82e3824750f86d2c76d5` |
-| `image/p202-203.jpg` | 946065 | `c877573468b94414c7dcddcd8ae973fc9f568774a960d52d1fa7bffbfad64632` |
-| `image/p272-273.jpg` | 1016776 | `6a53dc5311ddb856633c38971991b3e34b691252878f6ff015d5c7454fed5d5b` |
-| `image/toc-001.jpg` | 1272023 | `236a93f6510a6c145e3bfb549da2ddee6c0f6b45c6b36e4e8bb0e3ee28818b9c` |
-| `navigation-documents.xhtml` | 1432 | `ee4ed5876ed1d62a2de102bbcf8581b9823e173f60ec942e1ca5d7919158bedd` |
-| `standard.opf` | 8954 | `721cac9facb30f9642e635b6a949a6e3a4ee066eab2461e88706d6cd9063161e` |
-| `style/book-style.css` | 6265 | `8f79b97cdb18dbab2dbe585b8068361dd88dd0d579faeb76a28d5361468dcdfe` |
-| `style/fixed-layout-jp.css` | 134 | `d59219401aba0594a765c38913cbad87caadae4b2e873c26b43f403f5a34f5e6` |
-| `style/style-advance.css` | 84707 | `2be69e0603ce34cecce869896e37794379138b33dbf2cf7eee1459b52d0e1306` |
-| `style/style-check.css` | 2656 | `d2b0c33ef50a4925baab9b7179aaa3c2845b5950682df255e40aa265e2de6b7a` |
-| `style/style-kadokawa.css` | 7024 | `b740df19e7fb68db8d4e55c2b0bbf9e640444a0f72bd1105e67005518cca3c5c` |
-| `style/style-karc.css` | 1569 | `4c16008a60f369029d740186aa957b960f317382331c3bb582f08fbd854051f9` |
-| `style/style-reset.css` | 2366 | `105ade4b7e3d0a46e2c7abdad5bb6a8077b22895f5ed3f5024fd3d5bf7f8b899` |
-| `style/style-standard.css` | 54465 | `89efe50fa7f8fe1a26776cc53d116e004b3b138faf9ef7e39ab489b92bab445a` |
-| `xhtml/p-001.xhtml` | 791 | `5867e0c3fac606bbe298018fba5bffebf6d235fbc93cc461b96791a272b5f840` |
-| `xhtml/p-002.xhtml` | 19447 | `72d51e5c7234d4ce1f28a0239d8e4568138796fea1ab81e543250be12d96b80b` |
-| `xhtml/p-003.xhtml` | 826 | `5de6512418fe199b52543790fba26ac579aac7a984b35352b65138e577b2cf89` |
-| `xhtml/p-004.xhtml` | 152258 | `0b32529706328c4ecf78bc4c7b237b43cf6b7c5ff23bb2ff5836de6b39b45739` |
-| `xhtml/p-005.xhtml` | 791 | `e2db9fd505cc64fb8275c9f0456dd6531d8b5447277adf3a671cea3705be7ecd` |
-| `xhtml/p-006.xhtml` | 182144 | `a1be65488c32e7f0e2c62ce08d68c93d6bd808df224716fd037a61c0dadd5bd2` |
-| `xhtml/p-007.xhtml` | 798 | `eb382eec489c0ec2f3f0c8685c651721602f862258f750a7608340ac6ca443d3` |
-| `xhtml/p-008.xhtml` | 118657 | `c27c7b1d5afbc2d6b4c13954401ae3154dc0352fd7acbeb63421a82716ed014c` |
-| `xhtml/p-009.xhtml` | 793 | `7d44ed36557cce615e9f4dd930f0de3b96970a33eff0779a9166126f1401496d` |
-| `xhtml/p-010.xhtml` | 11290 | `3fa541a3efc8dc67638a6c6a8afdef48cde653264bb80e17da16a5aad86c1b1c` |
-| `xhtml/p-011.xhtml` | 4229 | `6b5c0532ecb98ea02bb4d1be61e5c0e6f22d9eda4a5c87c2472d786781c6b4b9` |
-| `xhtml/p-bookwalker.xhtml` | 671 | `1757004b8dd65a767fbba5fce482c063c27d14aa4225e6dc46e91621cc1ca879` |
-| `xhtml/p-caution.xhtml` | 1305 | `d347da7e33e919e5d44526455b30e16549fc00d8f35fb373f12788f4539fed52` |
-| `xhtml/p-colophon.xhtml` | 2119 | `caf481f3d1e840cf2314db464627f6ac8477947790027ee3f61f3496b8d7a59f` |
-| `xhtml/p-cover.xhtml` | 742 | `cd68c353050f329f4921ee0bd5ffa5813b5fe2f3f21b97dc8def737deedd13e1` |
-| `xhtml/p-credit.xhtml` | 618 | `9a7801fa679f1ba81916bbf2b696cccc6577163b6909c9cd5773f1522bcac457` |
-| `xhtml/p-fmatter-001.xhtml` | 729 | `1c5cbf9ef24991c01bfb8b91ab3831688676e326bbee7ccd4ec634d94934a9fd` |
-| `xhtml/p-fmatter-002.xhtml` | 729 | `5c565a77da7a8d29de959e609039332277575cefeb1b90266c217ceacbdb8c3a` |
-| `xhtml/p-titlepage.xhtml` | 1007 | `a2654db9a2c3558c07e8aabd149cea2bec9949a7de7ca43bf49a7ba712d63767` |
-| `xhtml/p-toc-001.xhtml` | 726 | `edec028abaef88ef09ce2290db11e5701ce0d06185ed0bf279cbc28f5ab82c26` |
-| `xhtml/p-toc-002.xhtml` | 1375 | `9f0655006d22ef5c4f07036e7fa865db995c5f6ea028f6e39e5d3d2b9b1201f2` |
+| <code>image/cover.jpg</code> | 750511 | <code>586668a870fa20879d43000f18364d3389ed9cbb0c42c4451c6c172a273ee07b</code> |
+| <code>image/gaiji-cid776-m-v.png</code> | 4828 | <code>f0cb553916bbc0bf12101951150e0b1fe55eaa1ae630981048f8d67317fe7cdf</code> |
+| <code>image/i-bookwalker.jpg</code> | 116828 | <code>93da8cbcf35fc14c16188ff6e325669b90ced56a14d72ce495631c76c76b6b75</code> |
+| <code>image/kuchie-001.jpg</code> | 666712 | <code>bd8b04dfa65c4e15c34dd7b9b0e20d29c9978aa22c0c84d7728a10099b666cc6</code> |
+| <code>image/kuchie-002.jpg</code> | 477195 | <code>79a67b6c70322d8db155f05366c532ce1222a944c11c0ecccb1faf919acb561b</code> |
+| <code>image/logo-sneaker.png</code> | 4267 | <code>3c68cdfe60118126cac64e2efc73d20294a63b7c1cece9c1adfb59553fa93f88</code> |
+| <code>image/p004-005.jpg</code> | 809815 | <code>839b5f6566c0fff9f09f983e61793d1d13d2d951ecd2cdc2177b39eefe723a02</code> |
+| <code>image/p016-017.jpg</code> | 1083461 | <code>5f8a8dce552f3498b983a239ea280503664ab0080b40088d5ea2f7b42a2fefa6</code> |
+| <code>image/p100-101.jpg</code> | 1335750 | <code>c55df81a39d4c6e94c187e090d323bff504a492b7a1b82e3824750f86d2c76d5</code> |
+| <code>image/p202-203.jpg</code> | 946065 | <code>c877573468b94414c7dcddcd8ae973fc9f568774a960d52d1fa7bffbfad64632</code> |
+| <code>image/p272-273.jpg</code> | 1016776 | <code>6a53dc5311ddb856633c38971991b3e34b691252878f6ff015d5c7454fed5d5b</code> |
+| <code>image/toc-001.jpg</code> | 1272023 | <code>236a93f6510a6c145e3bfb549da2ddee6c0f6b45c6b36e4e8bb0e3ee28818b9c</code> |
+| <code>navigation-documents.xhtml</code> | 1432 | <code>ee4ed5876ed1d62a2de102bbcf8581b9823e173f60ec942e1ca5d7919158bedd</code> |
+| <code>standard.opf</code> | 8954 | <code>721cac9facb30f9642e635b6a949a6e3a4ee066eab2461e88706d6cd9063161e</code> |
+| <code>style/book-style.css</code> | 6265 | <code>8f79b97cdb18dbab2dbe585b8068361dd88dd0d579faeb76a28d5361468dcdfe</code> |
+| <code>style/fixed-layout-jp.css</code> | 134 | <code>d59219401aba0594a765c38913cbad87caadae4b2e873c26b43f403f5a34f5e6</code> |
+| <code>style/style-advance.css</code> | 84707 | <code>2be69e0603ce34cecce869896e37794379138b33dbf2cf7eee1459b52d0e1306</code> |
+| <code>style/style-check.css</code> | 2656 | <code>d2b0c33ef50a4925baab9b7179aaa3c2845b5950682df255e40aa265e2de6b7a</code> |
+| <code>style/style-kadokawa.css</code> | 7024 | <code>b740df19e7fb68db8d4e55c2b0bbf9e640444a0f72bd1105e67005518cca3c5c</code> |
+| <code>style/style-karc.css</code> | 1569 | <code>4c16008a60f369029d740186aa957b960f317382331c3bb582f08fbd854051f9</code> |
+| <code>style/style-reset.css</code> | 2366 | <code>105ade4b7e3d0a46e2c7abdad5bb6a8077b22895f5ed3f5024fd3d5bf7f8b899</code> |
+| <code>style/style-standard.css</code> | 54465 | <code>89efe50fa7f8fe1a26776cc53d116e004b3b138faf9ef7e39ab489b92bab445a</code> |
+| <code>xhtml/p-001.xhtml</code> | 791 | <code>5867e0c3fac606bbe298018fba5bffebf6d235fbc93cc461b96791a272b5f840</code> |
+| <code>xhtml/p-002.xhtml</code> | 19447 | <code>72d51e5c7234d4ce1f28a0239d8e4568138796fea1ab81e543250be12d96b80b</code> |
+| <code>xhtml/p-003.xhtml</code> | 826 | <code>5de6512418fe199b52543790fba26ac579aac7a984b35352b65138e577b2cf89</code> |
+| <code>xhtml/p-004.xhtml</code> | 152258 | <code>0b32529706328c4ecf78bc4c7b237b43cf6b7c5ff23bb2ff5836de6b39b45739</code> |
+| <code>xhtml/p-005.xhtml</code> | 791 | <code>e2db9fd505cc64fb8275c9f0456dd6531d8b5447277adf3a671cea3705be7ecd</code> |
+| <code>xhtml/p-006.xhtml</code> | 182144 | <code>a1be65488c32e7f0e2c62ce08d68c93d6bd808df224716fd037a61c0dadd5bd2</code> |
+| <code>xhtml/p-007.xhtml</code> | 798 | <code>eb382eec489c0ec2f3f0c8685c651721602f862258f750a7608340ac6ca443d3</code> |
+| <code>xhtml/p-008.xhtml</code> | 118657 | <code>c27c7b1d5afbc2d6b4c13954401ae3154dc0352fd7acbeb63421a82716ed014c</code> |
+| <code>xhtml/p-009.xhtml</code> | 793 | <code>7d44ed36557cce615e9f4dd930f0de3b96970a33eff0779a9166126f1401496d</code> |
+| <code>xhtml/p-010.xhtml</code> | 11290 | <code>3fa541a3efc8dc67638a6c6a8afdef48cde653264bb80e17da16a5aad86c1b1c</code> |
+| <code>xhtml/p-011.xhtml</code> | 4229 | <code>6b5c0532ecb98ea02bb4d1be61e5c0e6f22d9eda4a5c87c2472d786781c6b4b9</code> |
+| <code>xhtml/p-bookwalker.xhtml</code> | 671 | <code>1757004b8dd65a767fbba5fce482c063c27d14aa4225e6dc46e91621cc1ca879</code> |
+| <code>xhtml/p-caution.xhtml</code> | 1305 | <code>d347da7e33e919e5d44526455b30e16549fc00d8f35fb373f12788f4539fed52</code> |
+| <code>xhtml/p-colophon.xhtml</code> | 2119 | <code>caf481f3d1e840cf2314db464627f6ac8477947790027ee3f61f3496b8d7a59f</code> |
+| <code>xhtml/p-cover.xhtml</code> | 742 | <code>cd68c353050f329f4921ee0bd5ffa5813b5fe2f3f21b97dc8def737deedd13e1</code> |
+| <code>xhtml/p-credit.xhtml</code> | 618 | <code>9a7801fa679f1ba81916bbf2b696cccc6577163b6909c9cd5773f1522bcac457</code> |
+| <code>xhtml/p-fmatter-001.xhtml</code> | 729 | <code>1c5cbf9ef24991c01bfb8b91ab3831688676e326bbee7ccd4ec634d94934a9fd</code> |
+| <code>xhtml/p-fmatter-002.xhtml</code> | 729 | <code>5c565a77da7a8d29de959e609039332277575cefeb1b90266c217ceacbdb8c3a</code> |
+| <code>xhtml/p-titlepage.xhtml</code> | 1007 | <code>a2654db9a2c3558c07e8aabd149cea2bec9949a7de7ca43bf49a7ba712d63767</code> |
+| <code>xhtml/p-toc-001.xhtml</code> | 726 | <code>edec028abaef88ef09ce2290db11e5701ce0d06185ed0bf279cbc28f5ab82c26</code> |
+| <code>xhtml/p-toc-002.xhtml</code> | 1375 | <code>9f0655006d22ef5c4f07036e7fa865db995c5f6ea028f6e39e5d3d2b9b1201f2</code> |
 
 ## Полный manifest
 
@@ -104,27 +104,27 @@ XML-разбор не заменяет проверку готового EPUB. �
 
 | № | idref | XHTML | Статус | p | ruby | rt | img/image |
 |---:|---|---|---|---:|---:|---:|---:|
-| 1 | `p-cover` | `xhtml/p-cover.xhtml` | parsed | 0 | 0 | 0 | 1 |
-| 2 | `p-fmatter-001` | `xhtml/p-fmatter-001.xhtml` | parsed | 0 | 0 | 0 | 1 |
-| 3 | `p-fmatter-002` | `xhtml/p-fmatter-002.xhtml` | parsed | 0 | 0 | 0 | 1 |
-| 4 | `p-titlepage` | `xhtml/p-titlepage.xhtml` | parsed | 4 | 0 | 0 | 1 |
-| 5 | `p-caution` | `xhtml/p-caution.xhtml` | parsed | 7 | 0 | 0 | 0 |
-| 6 | `p-toc-001` | `xhtml/p-toc-001.xhtml` | parsed | 0 | 0 | 0 | 1 |
-| 7 | `p-toc-002` | `xhtml/p-toc-002.xhtml` | TOC logged below, not repeated | 0 | 0 | 0 | 0 |
-| 8 | `p-001` | `xhtml/p-001.xhtml` | parsed | 0 | 0 | 0 | 1 |
-| 9 | `p-002` | `xhtml/p-002.xhtml` | parsed | 107 | 162 | 228 | 3 |
-| 10 | `p-003` | `xhtml/p-003.xhtml` | parsed | 0 | 0 | 0 | 1 |
-| 11 | `p-004` | `xhtml/p-004.xhtml` | parsed | 807 | 1085 | 1569 | 5 |
-| 12 | `p-005` | `xhtml/p-005.xhtml` | parsed | 0 | 0 | 0 | 1 |
-| 13 | `p-006` | `xhtml/p-006.xhtml` | parsed | 1038 | 1178 | 1708 | 4 |
-| 14 | `p-007` | `xhtml/p-007.xhtml` | parsed | 0 | 0 | 0 | 1 |
-| 15 | `p-008` | `xhtml/p-008.xhtml` | parsed | 735 | 806 | 1143 | 8 |
-| 16 | `p-009` | `xhtml/p-009.xhtml` | parsed | 0 | 0 | 0 | 1 |
-| 17 | `p-010` | `xhtml/p-010.xhtml` | parsed | 55 | 79 | 111 | 0 |
-| 18 | `p-011` | `xhtml/p-011.xhtml` | parsed | 17 | 21 | 30 | 0 |
-| 19 | `p-credit` | `xhtml/p-credit.xhtml` | parsed | 5 | 0 | 0 | 0 |
-| 20 | `p-colophon` | `xhtml/p-colophon.xhtml` | parsed | 14 | 5 | 8 | 1 |
-| 21 | `p-bookwalker` | `xhtml/p-bookwalker.xhtml` | parsed | 0 | 0 | 0 | 1 |
+| 1 | <code>p-cover</code> | <code>xhtml/p-cover.xhtml</code> | parsed | 0 | 0 | 0 | 1 |
+| 2 | <code>p-fmatter-001</code> | <code>xhtml/p-fmatter-001.xhtml</code> | parsed | 0 | 0 | 0 | 1 |
+| 3 | <code>p-fmatter-002</code> | <code>xhtml/p-fmatter-002.xhtml</code> | parsed | 0 | 0 | 0 | 1 |
+| 4 | <code>p-titlepage</code> | <code>xhtml/p-titlepage.xhtml</code> | parsed | 4 | 0 | 0 | 1 |
+| 5 | <code>p-caution</code> | <code>xhtml/p-caution.xhtml</code> | parsed | 7 | 0 | 0 | 0 |
+| 6 | <code>p-toc-001</code> | <code>xhtml/p-toc-001.xhtml</code> | parsed | 0 | 0 | 0 | 1 |
+| 7 | <code>p-toc-002</code> | <code>xhtml/p-toc-002.xhtml</code> | TOC logged below, not repeated | 0 | 0 | 0 | 0 |
+| 8 | <code>p-001</code> | <code>xhtml/p-001.xhtml</code> | parsed | 0 | 0 | 0 | 1 |
+| 9 | <code>p-002</code> | <code>xhtml/p-002.xhtml</code> | parsed | 107 | 162 | 228 | 3 |
+| 10 | <code>p-003</code> | <code>xhtml/p-003.xhtml</code> | parsed | 0 | 0 | 0 | 1 |
+| 11 | <code>p-004</code> | <code>xhtml/p-004.xhtml</code> | parsed | 807 | 1085 | 1569 | 5 |
+| 12 | <code>p-005</code> | <code>xhtml/p-005.xhtml</code> | parsed | 0 | 0 | 0 | 1 |
+| 13 | <code>p-006</code> | <code>xhtml/p-006.xhtml</code> | parsed | 1038 | 1178 | 1708 | 4 |
+| 14 | <code>p-007</code> | <code>xhtml/p-007.xhtml</code> | parsed | 0 | 0 | 0 | 1 |
+| 15 | <code>p-008</code> | <code>xhtml/p-008.xhtml</code> | parsed | 735 | 806 | 1143 | 8 |
+| 16 | <code>p-009</code> | <code>xhtml/p-009.xhtml</code> | parsed | 0 | 0 | 0 | 1 |
+| 17 | <code>p-010</code> | <code>xhtml/p-010.xhtml</code> | parsed | 55 | 79 | 111 | 0 |
+| 18 | <code>p-011</code> | <code>xhtml/p-011.xhtml</code> | parsed | 17 | 21 | 30 | 0 |
+| 19 | <code>p-credit</code> | <code>xhtml/p-credit.xhtml</code> | parsed | 5 | 0 | 0 | 0 |
+| 20 | <code>p-colophon</code> | <code>xhtml/p-colophon.xhtml</code> | parsed | 14 | 5 | 8 | 1 |
+| 21 | <code>p-bookwalker</code> | <code>xhtml/p-bookwalker.xhtml</code> | parsed | 0 | 0 | 0 | 1 |
 
 ## Аудит head/title
 
@@ -132,28 +132,28 @@ XML-разбор не заменяет проверку готового EPUB. �
 
 | XHTML | Значение title | Решение |
 |---|---|---|
-| `navigation-documents.xhtml` | Navigation | значение встречается в body; сохраняется исходное содержимое body, title отдельно не добавляется |
-| `xhtml/p-001.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
-| `xhtml/p-002.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
-| `xhtml/p-003.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
-| `xhtml/p-004.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
-| `xhtml/p-005.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
-| `xhtml/p-006.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
-| `xhtml/p-007.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
-| `xhtml/p-008.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
-| `xhtml/p-009.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
-| `xhtml/p-010.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
-| `xhtml/p-011.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
-| `xhtml/p-bookwalker.xhtml` | BOOK☆WALKER | не вставлено в художественный текст; метаданные задокументированы |
-| `xhtml/p-caution.xhtml` | ご利用上の注意 | не вставлено в художественный текст; метаданные задокументированы |
-| `xhtml/p-colophon.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
-| `xhtml/p-cover.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
-| `xhtml/p-credit.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
-| `xhtml/p-fmatter-001.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
-| `xhtml/p-fmatter-002.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
-| `xhtml/p-titlepage.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
-| `xhtml/p-toc-001.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
-| `xhtml/p-toc-002.xhtml` | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>navigation-documents.xhtml</code> | Navigation | значение встречается в body; сохраняется исходное содержимое body, title отдельно не добавляется |
+| <code>xhtml/p-001.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>xhtml/p-002.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>xhtml/p-003.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>xhtml/p-004.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>xhtml/p-005.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>xhtml/p-006.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>xhtml/p-007.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>xhtml/p-008.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>xhtml/p-009.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>xhtml/p-010.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>xhtml/p-011.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>xhtml/p-bookwalker.xhtml</code> | BOOK☆WALKER | не вставлено в художественный текст; метаданные задокументированы |
+| <code>xhtml/p-caution.xhtml</code> | ご利用上の注意 | не вставлено в художественный текст; метаданные задокументированы |
+| <code>xhtml/p-colophon.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>xhtml/p-cover.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>xhtml/p-credit.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>xhtml/p-fmatter-001.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>xhtml/p-fmatter-002.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>xhtml/p-titlepage.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>xhtml/p-toc-001.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
+| <code>xhtml/p-toc-002.xhtml</code> | 終末なにしてますか？ もう一度だけ、会えますか？#05 | совпадает с OPF-названием книги; не дублируется как текст страницы |
 
 ## Навигационные ссылки
 
@@ -189,6 +189,7 @@ XML-разбор не заменяет проверку готового EPUB. �
 
 ### Расхождения текстового слоя
 
+Не обнаружены.
 
 ### Профиль начальных отступов
 
@@ -254,6 +255,7 @@ XML-разбор не заменяет проверку готового EPUB. �
 | <code>xhtml/p-008.xhtml</code> | 520 | <code>'\u3000\u3000\u3000\u3000'</code> | 4 | <code></code> |  |
 | <code>xhtml/p-008.xhtml</code> | 721 | <code>'\u3000\u3000\u3000\u3000'</code> | 4 | <code></code> |  |
 
+
 ### Использование CSS-классов в XHTML
 
 Классы перечислены даже если их оформление не переносится в Markdown; это позволяет заметить потенциально значимые классы.
@@ -305,7 +307,6 @@ XML-разбор не заменяет проверку готового EPUB. �
 | tcy | span | 42 |
 | vrtl | html | 9 |
 | word-break-break-all | span | 11 |
-Не обнаружены.
 
 ### Расхождения последовательности ruby-чтений
 

@@ -539,7 +539,7 @@ class Extractor:
         t=kind(node)
         if t in {"#comment","#pi"}:return ""
         if t=="#entity":return str(node)
-        if t=="rt" and in_ruby:return ""
+        if t in {"rt", "rp"} and in_ruby:return ""
         if t in {"img","image"}:
             href=node.get("src") or node.get("href") or node.get("{http://www.w3.org/1999/xlink}href") or ""
             return "[image: "+(unquote(urlsplit(href).path).split("/")[-1] or "missing-href")+"]"
@@ -838,7 +838,8 @@ class Extractor:
             "markdown_chars":len(md),"report_chars":len(report),"spine_items":len(self.spine),
             "paragraphs":self.p_count,"empty_paragraphs":self.empty_p,"text_mismatches":len(self.text_mismatches),
             "reading_mismatches":len(self.reading_mismatches),"ruby_warnings":len(self.ruby_issues),"image_occurrences":len(self.images),
-            "parse_errors":len(self.errors),"warnings":len(self.warnings),"dry_run":dry_run}
+            "parse_errors":len(self.errors),"warnings":len(self.warnings),
+            "broken_links":sum(1 for x in self.link_checks if x["status"] != "OK"),"dry_run":dry_run}
 
 def main(argv=None):
     ap=argparse.ArgumentParser(description="Extract Japanese EPUB XHTML in OPF spine order.")
@@ -858,7 +859,7 @@ def main(argv=None):
     except (RuntimeError,etree.XMLSyntaxError,OSError) as exc:
         print("ERROR: "+str(exc),file=sys.stderr);return 2
     print(json.dumps(result,ensure_ascii=False,indent=2))
-    if result["text_mismatches"] or result["reading_mismatches"] or result["ruby_warnings"] or result["parse_errors"]:
+    if result["text_mismatches"] or result["reading_mismatches"] or result["ruby_warnings"] or result["parse_errors"] or result["broken_links"]:
         print("WARNING: validation issues exist; inspect the report.",file=sys.stderr);return 1
     return 0
 

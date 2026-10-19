@@ -538,7 +538,7 @@ class Extractor:
             "| Unmanifested files on disk | "+str(len(non_manifest))+" | "+(", ".join(non_manifest) if non_manifest else "none")+" |",
             "| Text-layer mismatches | "+str(len(self.text_mismatches))+" | Full list above |",
             "| Ruby reading sequence mismatches | "+str(len(self.reading_mismatches))+" | Full list above |",
-            "| Ruby warnings | "+str(len(self.ruby_issues))+" | Full list above |
+            "| Ruby warnings | "+str(len(self.ruby_issues))+" | Full list above |,
             "| Parse/resource warnings | "+str(len(self.warnings))+" | Full list below |",
             "","### Полный список предупреждений",""]
         rows += ["- "+table(x) for x in self.warnings] or ["Не обнаружены."]

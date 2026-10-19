@@ -46,12 +46,12 @@ class ExtractorIntegrationTests(unittest.TestCase):
 """)
         write(item / "xhtml" / "p-second.xhtml", """<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja"><head><title>Test Book</title></head>
-<body><div class="main"><p id="part-second" title="Second Part">Second paragraph.</p></div></body></html>
+<body><div class="main"><p id="part-second" title="Second Part">Second paragraph.</p>TAIL_AFTER_SECOND</div></body></html>
 """)
         write(item / "xhtml" / "p-first.xhtml", """<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja"><head><title>Test Book</title></head>
 <body><div class="main">
-<p id="part-first" title="First Part">記<ruby>記<rt>き</rt>憶<rt>おく</rt></ruby>。<span class="em-sesame">強調</span> <img src="../image/diagram.png" alt="glyph"/>.</p>
+<p id="part-first" title="First Part">記<ruby>記<rt>き</rt>憶<rt>おく</rt></ruby>。<span class="em-sesame">強調</span> <img src="../image/diagram.png" alt="glyph"/>. <a href="#footnote-1">脚注</a><span id="footnote-1">注</span></p>
 <p><br/></p>
 </div></body></html>
 """)
@@ -70,6 +70,8 @@ class ExtractorIntegrationTests(unittest.TestCase):
         report = extractor.make_report()
 
         self.assertLess(markdown.index("Second paragraph."), markdown.index("記〔き〕憶〔おく〕"))
+        self.assertIn("TAIL_AFTER_SECOND", markdown)
+        self.assertIn("[脚注](#footnote-1)", markdown)
         self.assertIn("<em>強調</em>", markdown)
         self.assertIn("[пауза]", markdown)
         self.assertIn("[[EPUB_IMAGE:v99:xhtml/p-first.xhtml:image/diagram.png:occ-01]]", markdown)
@@ -77,6 +79,7 @@ class ExtractorIntegrationTests(unittest.TestCase):
         self.assertIn("style/book.css", report)
         self.assertIn("image/diagram.png", report)
         self.assertEqual(summary["text_mismatches"], 0)
+        self.assertEqual(summary["reading_mismatches"], 0)
         self.assertEqual(summary["ruby_warnings"], 0)
         self.assertEqual(summary["parse_errors"], 0)
         self.assertEqual(summary["image_occurrences"], 1)

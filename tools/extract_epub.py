@@ -404,6 +404,16 @@ class Extractor:
                 self.main_blocks.append("<!-- SOURCE NOT PARSED: "+str(rel or item["idref"])+"; see report -->");continue
             if self.is_duplicate_toc(tree,rel):
                 self.main_blocks.append("<!-- "+rel+" is a repeated TOC; its text and link targets are retained in the report. -->");continue
+            # Titles in XHTML head are metadata, not automatically body prose. Record any
+            # non-book title absent from visible body text rather than dropping it silently.
+            title_nodes=tree.xpath("//*[local-name()='head']/*[local-name()='title']")
+            bodies_for_title=tree.xpath("//*[local-name()='body']")
+            title_body=base_of(bodies_for_title[0]).strip() if bodies_for_title else ""
+            for title_node in title_nodes:
+                title_value=text_of(title_node).strip()
+                if title_value and title_value != self.title and title_value not in title_body:
+                    safe_title=title_value.replace("--","- -")
+                    self.main_blocks.append("<!-- XHTML head/title is metadata and was not inserted into the book body: "+rel+"; title="+safe_title+". See the head/title audit in the report. -->")
             heading=self.nav_heading(rel,tree)
             if heading:self.main_blocks.append("## "+heading)
             bodies=tree.xpath("//*[local-name()='body']")
@@ -477,6 +487,22 @@ class Extractor:
             rel=x.get("relative") or "(no manifest match)";st=self.stats.get(rel,{})
             status="XML error" if rel in self.errors else ("not parsed" if rel not in self.docs else ("TOC logged below, not repeated" if self.is_duplicate_toc(self.docs[rel],rel) else "parsed"))
             rows.append("| "+str(i)+" | "+code(x["idref"])+" | "+code(rel)+" | "+table(status)+" | "+str(st.get("p",0))+" | "+str(st.get("ruby",0))+" | "+str(st.get("rt",0))+" | "+str(st.get("images",0))+" |")
+        rows += ["","## Аудит head/title","",
+            "Заголовки XHTML из head — метаданные, а не автоматически видимый текст книги. Все title перечислены ниже; отличающиеся от названия тома, отсутствующие в body, не добавляются в художественный текст и получают поясняющий комментарий в основном Markdown, когда страница входит в spine.",
+            "",
+            "| XHTML | Значение title | Решение |","|---|---|---|"]
+        for rel, tree in sorted(self.docs.items()):
+            for title_node in tree.xpath("//*[local-name()='head']/*[local-name()='title']"):
+                value=text_of(title_node).strip()
+                bodies=tree.xpath("//*[local-name()='body']")
+                visible=base_of(bodies[0]).strip() if bodies else ""
+                if value == self.title:
+                    decision="совпадает с OPF-названием книги; не дублируется как текст страницы"
+                elif value and value in visible:
+                    decision="значение встречается в body; сохраняется исходное содержимое body, title отдельно не добавляется"
+                else:
+                    decision="не вставлено в художественный текст; метаданные задокументированы"
+                rows.append("| "+code(rel)+" | "+table(value)+" | "+decision+" |")
         rows += ["","## Навигационные ссылки","",
             "| Текст | href | Целевой файл |","|---|---|---|"]
         rows += ["| "+table(x["label"])+" | "+code(x["href"])+" | "+code(x["target"])+" |" for x in self.nav_links]

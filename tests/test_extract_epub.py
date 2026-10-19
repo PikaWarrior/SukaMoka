@@ -74,7 +74,7 @@ class ExtractorIntegrationTests(unittest.TestCase):
         self.assertIn("[脚注](#footnote-1)", markdown)
         self.assertIn("<em>強調</em>", markdown)
         self.assertIn("[пауза]", markdown)
-        self.assertIn("[[EPUB_IMAGE:v99:xhtml/p-first.xhtml:image/diagram.png:occ-01]]", markdown)
+        self.assertIn("[[EPUB_IMAGE:v99:xhtml/p-first.xhtml:diagram.png:occ-01]]", markdown)
         self.assertIn("Second Part", report)
         self.assertIn("style/book.css", report)
         self.assertIn("image/diagram.png", report)

@@ -22,7 +22,7 @@ class ExtractorIntegrationTests(unittest.TestCase):
         write(item / "standard.opf", """<?xml version="1.0" encoding="UTF-8"?>
 <package xmlns="http://www.idpf.org/2007/opf"
          xmlns:dc="http://purl.org/dc/elements/1.1/" version="3.0">
-  <metadata><dc:title>Test Book</dc:title><dc:language>ja</dc:language></metadata>
+  <metadata><dc:title>Test Book</dc:title><dc:language>ja</dc:language><meta name="cover" content="legacy-cover"/></metadata>
   <manifest>
     <item id="nav" href="navigation-documents.xhtml" media-type="application/xhtml+xml" properties="nav"/>
     <item id="style" href="style/book.css" media-type="text/css"/>
@@ -31,6 +31,7 @@ class ExtractorIntegrationTests(unittest.TestCase):
     <item id="p-second" href="xhtml/p-second.xhtml" media-type="application/xhtml+xml"/>
     <item id="p-first" href="xhtml/p-first.xhtml" media-type="application/xhtml+xml"/>
     <item id="diagram" href="image/diagram.png" media-type="image/png"/>
+    <item id="legacy-cover" href="image/legacy-cover.png" media-type="image/png"/>
   </manifest>
   <spine>
     <itemref idref="p-second"/>
@@ -48,7 +49,7 @@ class ExtractorIntegrationTests(unittest.TestCase):
 """)
         write(item / "xhtml" / "p-second.xhtml", """<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja"><head><title>Test Book</title></head>
-<body><div class="main"><p id="part-second" title="Second Part">Second paragraph.</p>TAIL_AFTER_SECOND</div></body></html>
+<body>BODY_BEFORE<!-- hidden comment -->BODY_AFTER<div class="main"><p id="part-second" title="Second Part">Second paragraph.</p>TAIL_AFTER_SECOND</div></body></html>
 """)
         write(item / "xhtml" / "p-first.xhtml", """<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja"><head><title>Test Book</title></head>
@@ -62,6 +63,8 @@ class ExtractorIntegrationTests(unittest.TestCase):
 <p>* * *</p>
 <p>---</p>
 <p>&gt; literal quote</p>
+<p><em>курсив</em>- минус</p>
+<p>orphan <rt>&lt;x&gt;&amp;</rt></p>
 <p><ruby>外<ruby>内<rt>うち</rt></ruby><rt>そと</rt></ruby></p>
 <p><br/></p>
 <!-- comment text is omitted, but this tail must survive -->COMMENT_TAIL_VISIBLE
@@ -72,6 +75,8 @@ class ExtractorIntegrationTests(unittest.TestCase):
         write(item / "style" / "commented.css", "/* optional test sheet */\n")
         (item / "image").mkdir(parents=True, exist_ok=True)
         (item / "image" / "diagram.png").write_bytes(b"fixture, not a real image")
+        (item / "image" / "legacy-cover.png").write_bytes(b"fixture cover")
+        (item / "odd|name.bin").write_text("pipe in inventory path", encoding="utf-8")
 
     def tearDown(self):
         self.temp.cleanup()
@@ -85,6 +90,10 @@ class ExtractorIntegrationTests(unittest.TestCase):
 
         self.assertLess(markdown.index("Second paragraph."), markdown.index("記〔き〕憶〔おく〕"))
         self.assertIn("TAIL" + chr(92) + "_AFTER" + chr(92) + "_SECOND", markdown)
+        self.assertIn("BODY" + chr(92) + "_BEFOREBODY" + chr(92) + "_AFTER", markdown)
+        self.assertIn("<em>курсив</em>- минус", markdown)
+        self.assertNotIn("</em>" + chr(92) + "- минус", markdown)
+        self.assertIn("orphan <rt>&lt;x&gt;&amp;</rt>", markdown)
         self.assertIn("COMMENT" + chr(92) + "_TAIL" + chr(92) + "_VISIBLE", markdown)
         self.assertIn("[脚注](#footnote-1)", markdown)
         self.assertIn("<em>強調</em>", markdown)
@@ -111,7 +120,12 @@ class ExtractorIntegrationTests(unittest.TestCase):
         self.assertNotIn("style/commented.css", [item["target"] for item in extractor.css_refs])
         self.assertIn("image/diagram.png", report)
         self.assertIn("alt", report)
+        self.assertIn("EPUB2 cover metadata", report)
+        self.assertIn("legacy-cover", report)
+        self.assertIn("odd&#124;name.bin", report)
         self.assertIn("em-sesame", report)
+        mismatch_section = report.split("### Расхождения текстового слоя", 1)[1].split("### Профиль начальных отступов", 1)[0]
+        self.assertIn("Не обнаружены.", mismatch_section)
         self.assertEqual(summary["text_mismatches"], 0)
         self.assertEqual(summary["reading_mismatches"], 0)
         self.assertEqual(summary["ruby_warnings"], 1)  # nested ruby is deliberately flagged

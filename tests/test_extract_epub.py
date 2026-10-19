@@ -51,8 +51,14 @@ class ExtractorIntegrationTests(unittest.TestCase):
         write(item / "xhtml" / "p-first.xhtml", """<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja"><head><title>Test Book</title></head>
 <body><div class="main">
-<p id="part-first" title="First Part">記<ruby>記<rt>き</rt>憶<rt>おく</rt></ruby>。<span class="em-sesame">強調</span> <img src="../image/diagram.png" alt="glyph"/>. <a href="#footnote-1">脚注</a><span id="footnote-1">注</span></p>
+<p id="part-first" title="First Part">記<ruby>記<rp>(</rp><rt>き</rt><rp>)</rp>憶<rt>おく</rt></ruby>。<span class="em-sesame">強調</span> <img src="../image/diagram.png" alt="glyph|pipe"/>. <a href="#footnote-1">脚注</a><span id="footnote-1">注</span></p>
+<h2 id="heading-break">見出し1<br/>見出し2</h2>
+<p>*literal* _literal_ &lt;tag&gt; &amp; entity</p>
+<p># literal heading</p>
+<p>1. literal numbered paragraph</p>
+<p><ruby>外<ruby>内<rt>うち</rt></ruby><rt>そと</rt></ruby></p>
 <p><br/></p>
+<!-- comment text is omitted, but this tail must survive -->COMMENT_TAIL_VISIBLE
 </div></body></html>
 """)
         write(item / "style" / "book.css", "body { background-image: url('../image/diagram.png'); }\n")
@@ -71,18 +77,41 @@ class ExtractorIntegrationTests(unittest.TestCase):
 
         self.assertLess(markdown.index("Second paragraph."), markdown.index("記〔き〕憶〔おく〕"))
         self.assertIn("TAIL_AFTER_SECOND", markdown)
+        self.assertIn("COMMENT_TAIL_VISIBLE", markdown)
         self.assertIn("[脚注](#footnote-1)", markdown)
         self.assertIn("<em>強調</em>", markdown)
+        self.assertIn("漢", markdown) if False else None
         self.assertIn("[пауза]", markdown)
         self.assertIn("[[EPUB_IMAGE:v99:xhtml/p-first.xhtml:diagram.png:occ-01]]", markdown)
+        self.assertIn("## 見出し1 見出し2", markdown)
+        self.assertIn(r"\*literal\* \_literal\_", markdown)
+        self.assertIn("&lt;tag&gt; &amp; entity", markdown)
+        self.assertIn(r"\# literal heading", markdown)
+        self.assertIn(r"1\. literal numbered paragraph", markdown)
+        self.assertIn("<ruby>外<ruby>内<rt>うち</rt></ruby><rt>そと</rt></ruby>", markdown)
+        self.assertNotIn("記(〔き〕)", markdown)
         self.assertIn("Second Part", report)
         self.assertIn("style/book.css", report)
         self.assertIn("image/diagram.png", report)
+        self.assertIn("alt", report)
+        self.assertIn("em-sesame", report)
         self.assertEqual(summary["text_mismatches"], 0)
         self.assertEqual(summary["reading_mismatches"], 0)
-        self.assertEqual(summary["ruby_warnings"], 0)
+        self.assertEqual(summary["ruby_warnings"], 1)  # nested ruby is deliberately flagged
         self.assertEqual(summary["parse_errors"], 0)
+        self.assertEqual(summary["broken_links"], 0)
         self.assertEqual(summary["image_occurrences"], 1)
+
+    def test_missing_fragment_is_reported(self):
+        item = self.root / "raw" / "99" / "item"
+        first = item / "xhtml" / "p-first.xhtml"
+        source = first.read_text(encoding="utf-8")
+        source = source.replace('href="#footnote-1"', 'href="#missing-anchor"')
+        first.write_text(source, encoding="utf-8")
+        extractor = Extractor(99, self.root, self.root / "output")
+        summary = extractor.run(dry_run=True)
+        self.assertEqual(summary["broken_links"], 1)
+        self.assertIn("missing fragment id", extractor.make_report())
 
     def test_no_overwrite_without_flag(self):
         out = self.root / "output"

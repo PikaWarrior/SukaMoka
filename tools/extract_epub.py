@@ -508,7 +508,7 @@ class Extractor:
         removed = self.indent_removed - before_removed
         if removed:
             self.indent_audit.append({
-                "file": page, "paragraph": pnum, "leading_indent": indent_match.group(0),
+                "file": page, "paragraph": pnum, "leading_indent": indent_match.group(0) if indent_match else "(prefix not at base layer)",
                 "removed_chars": removed, "sample": r["plain"][:100],
                 "classes": (node.get("class") or "").split(),
             })
@@ -687,8 +687,15 @@ class Extractor:
             "| Путь | Байты | SHA-256 |","|---|---:|---|"]
         rows += ["| "+code(x["path"])+" | "+str(x["bytes"])+" | "+code(x["sha"])+" |" for x in self.inventory]
         rows += ["","## Полный manifest","",
-            "| id | href | media-type | Файл найден | Локальная ссылка |","|---|---|---|---|---|"]
-        rows += ["| "+table(x.get("id"))+" | "+code(x.get("href",""))+" | "+table(x.get("media-type"))+" | "+("да" if x["exists"] else "НЕТ")+" | "+("да" if x["referenced"] else "ссылка не найдена")+" |" for x in self.manifest]
+            "| id | href | media-type | Файл найден | Использование |","|---|---|---|---|---|"]
+        for item in self.manifest:
+            if item["referenced"]:
+                use_status = "локальная ссылка"
+            elif item["package_uses"]:
+                use_status = "package metadata: " + ", ".join(item["package_uses"])
+            else:
+                use_status = "не найдено (проверить)"
+            rows.append("| "+table(item.get("id"))+" | "+table_code(item.get("href",""))+" | "+table(item.get("media-type"))+" | "+("да" if item["exists"] else "НЕТ")+" | "+table(use_status)+" |")
         rows += ["","## Spine","",
             "| № | idref | XHTML | Статус | p | ruby | rt | img/image |","|---:|---|---|---|---:|---:|---:|---:|"]
         for i,x in enumerate(self.spine,1):
@@ -719,12 +726,29 @@ class Extractor:
             "- Spine items: "+str(len(self.spine))+"; сопоставлены с manifest: "+str(sum(bool(x["record"]) for x in self.spine))+".",
             "- Абзацы p в основном потоке: "+str(self.p_count)+"; пустых p, отмеченных [пауза]: "+str(self.empty_p)+".",
             "- br-элементов: "+str(self.br_count)+"; em-sesame: "+str(self.em_count)+".",
+            "- Начальных отступов снято: "+str(self.indent_removed)+" символов в "+str(len(self.indent_audit))+" абзацах.",
+            "- CSS-классов в XHTML: "+str(len(self.class_usage))+" уникальных имён; подробности приведены ниже.",
+            "- Проверено внутренних ссылок/фрагментов: "+str(len(self.link_checks))+"; проблемных: "+str(sum(1 for x in self.link_checks if x["status"] != "OK"))+".",
             "- Маркеров изображений: "+str(len(self.images))+"; уникальных ресурсов в маркерах: "+str(len(marked))+".",
             "- Изображений manifest без маркера в spine XHTML: "+str(len(unmarked))+".",
             "- Расхождений текстового слоя абзацев: "+str(len(self.text_mismatches))+"; расхождений порядка ruby-чтений: "+str(len(self.reading_mismatches))+"; ruby warnings: "+str(len(self.ruby_issues))+".",
             "- Неизвестных элементов: "+str(len(self.unknown))+"; XML-комментариев: "+str(len(self.comments))+"; processing instructions: "+str(len(self.pis))+".",
             "- Литеральных символов 〔〕 вне rt: "+str(self.literal_brackets)+"; предупреждений: "+str(len(self.warnings))+".",
             "","### Расхождения текстового слоя",""]
+        rows += ["","### Удалённые начальные отступы","",
+            "Ниже перечислены все абзацы, где скрипт удалял начальный оформительский отступ.",
+            "",
+            "| XHTML | p № | Начальный отступ (repr) | Удалено символов | Классы | Фрагмент после удаления |","|---|---:|---|---:|---|---|"]
+        for item in self.indent_audit:
+            rows.append("| "+table_code(item["file"])+" | "+str(item["paragraph"])+" | "+table_code(repr(item["leading_indent"]))+" | "+str(item["removed_chars"])+" | "+table_code(" ".join(item["classes"]))+" | "+table(item["sample"])+" |")
+        if not self.indent_audit:
+            rows.append("Начальные отступы не удалялись.")
+        rows += ["","### Использование CSS-классов в XHTML","",
+            "Классы перечислены даже если их оформление не переносится в Markdown; это позволяет заметить потенциально значимые классы.",
+            "",
+            "| Класс | Элемент | Количество |","|---|---|---:|"]
+        for (class_name, tag_name), count in sorted(self.class_tag_usage.items()):
+            rows.append("| "+table(class_name)+" | "+table(tag_name)+" | "+str(count)+" |")
         rows += ["- "+code(x["file"])+" p#"+str(x["p"])+": source="+table(x["source"])+"; rendered="+table(x["rendered"]) for x in self.text_mismatches] or ["Не обнаружены."]
         rows += ["","### Расхождения последовательности ruby-чтений",""]
         rows += ["- "+code(x["file"])+" p#"+str(x["p"])+": source="+table(json.dumps(x["source"],ensure_ascii=False))+"; rendered="+table(json.dumps(x["rendered"],ensure_ascii=False)) for x in self.reading_mismatches] or ["Не обнаружены."]

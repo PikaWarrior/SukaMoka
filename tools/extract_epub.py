@@ -84,8 +84,10 @@ def escape_markdown_text(text):
     return re.sub(r"([\\\x60*_{}\[\]()#+\-.!|])", r"\\\1", value)
 
 class Extractor:
-    def __init__(self, volume, root, output_dir, allow_partial=False):
+    def __init__(self, volume, root, output_dir, allow_partial=False, github_repo="PikaWarrior/SukaMoka", github_ref="main"):
         self.volume = volume
+        self.github_repo = github_repo.strip("/")
+        self.github_ref = github_ref
         self.root = root.resolve()
         self.item = (self.root / "raw" / str(volume) / "item").resolve()
         self.output_dir = output_dir.resolve()
@@ -113,8 +115,15 @@ class Extractor:
         self.warnings.append(message)
 
     def rel(self, path):
-        try: return path.resolve().relative_to(self.item).as_posix()
-        except ValueError: return str(path)
+        try:
+            return path.resolve().relative_to(self.item).as_posix()
+        except ValueError:
+            return str(path)
+
+    def github_url(self, path):
+        encoded_path = quote(str(path).replace("\\", "/"), safe="/")
+        encoded_ref = quote(self.github_ref, safe="")
+        return f"https://github.com/{self.github_repo}/blob/{encoded_ref}/{encoded_path}"
 
     def resolve(self, base, href):
         if not href: return None
@@ -288,11 +297,19 @@ class Extractor:
     def has_rt(self,node):
         return any(kind(x)=="rt" for x in walk(node))
 
-    def render_text(self,text,state):
-        if state.get("leading",True):
-            cut=unindent(text);self.indent_removed+=len(text)-len(cut);text=cut
-            if text:state["leading"]=False
-        return {"md":text,"plain":text,"readings":[],"images":[]}
+    def render_text(self, text, state):
+        if state.get("leading", True):
+            cut = unindent(text)
+            self.indent_removed += len(text) - len(cut)
+            text = cut
+            if text:
+                state["leading"] = False
+        return {
+            "md": escape_markdown_text(text),
+            "plain": text,
+            "readings": [],
+            "images": [],
+        }
 
     def ruby_tokens(self,node):
         if node.text is not None:yield ("text",node.text)
@@ -313,6 +330,7 @@ class Extractor:
     def render_node(self,node,page,state,pnum=None,in_ruby=False):
         t=kind(node)
         if t in {"#comment","#pi"}:return {"md":"","plain":"","readings":[],"images":[]}
+        if t=="rp" and in_ruby:return {"md":"","plain":"","readings":[],"images":[]}
         if t=="#entity":
             val=str(node);self.warnings.append("Unresolved entity rendered literally: "+page+" "+val)
             return {"md":val,"plain":val,"readings":[],"images":[]}
@@ -330,7 +348,7 @@ class Extractor:
                 if typ!="rt":buffer.append((typ,obj));continue
                 base=self.render_buffer(buffer,page,state,pnum);reading=text_of(obj)
                 if not base["plain"] and not base["md"]:self.ruby_issues.append({"file":page,"path":obj.getroottree().getpath(obj),"issue":"rt without preceding base","text":reading})
-                off=len(out["plain"]);out["md"]+=base["md"]+self.left+reading+self.right;out["plain"]+=base["plain"]
+                off=len(out["plain"]);out["md"]+=base["md"]+self.left+escape_markdown_text(reading)+self.right;out["plain"]+=base["plain"]
                 out["readings"]+=base["readings"]+[reading];out["images"] += [(im,off+pos) for im,pos in base["images"]]
                 buffer=[];seen+=1
             if buffer:
@@ -360,23 +378,51 @@ class Extractor:
             self.unknown.append({"file":page,"path":node.getroottree().getpath(node),"tag":t,"attributes":dict(node.attrib),"text":out["plain"][:160]})
         return out
 
-    def render_p(self,node,page,pnum):
-        r=self.render_node(node,page,{"leading":True},pnum)
-        expected=unindent(base_of(node))
-        if r["plain"]!=expected:self.text_mismatches.append({"file":page,"p":pnum,"source":expected[:160],"rendered":r["plain"][:160]})
-        source_readings=[text_of(x) for x in node.xpath(".//*[local-name()='rt']")]
-        if r["readings"]!=source_readings:
-            self.reading_mismatches.append({"file":page,"p":pnum,"source":source_readings,"rendered":r["readings"]})
-        for im,off in r["images"]:
-            im["paragraph"]=pnum;im["before"]=r["plain"][max(0,off-60):off].replace("\n"," ");im["after"]=r["plain"][off:off+60].replace("\n"," ")
-        empty=not r["plain"].strip() and not r["md"].strip()
-        classes=set((node.get("class") or "").split())
-        result="[пауза]" if empty else r["md"]
-        if empty:self.empty_p+=1
-        elif "font-1em30" in classes:result="## "+result
-        elif "font-1em10" in classes:result="### "+result
-        elif Path(page).stem in {"p-titlepage","titlepage"} and r["plain"].strip()==self.title:result="# "+result
-        self.p_count+=1
+    def render_p(self, node, page, pnum):
+        raw_base = base_of(node)
+        indent_match = INDENT.match(raw_base)
+        before_removed = self.indent_removed
+        r = self.render_node(node, page, {"leading": True}, pnum)
+        expected = unindent(raw_base)
+        if r["plain"] != expected:
+            self.text_mismatches.append({
+                "file": page, "p": pnum,
+                "source": expected[:160], "rendered": r["plain"][:160],
+            })
+        source_readings = [text_of(x) for x in node.xpath(".//*[local-name()='rt']")]
+        if r["readings"] != source_readings:
+            self.reading_mismatches.append({
+                "file": page, "p": pnum,
+                "source": source_readings, "rendered": r["readings"],
+            })
+        removed = self.indent_removed - before_removed
+        if removed:
+            self.indent_audit.append({
+                "file": page, "paragraph": pnum, "leading_indent": indent_match.group(0),
+                "removed_chars": removed, "sample": r["plain"][:100],
+                "classes": (node.get("class") or "").split(),
+            })
+        for image, offset in r["images"]:
+            image["paragraph"] = pnum
+            image["before"] = r["plain"][max(0, offset-60):offset].replace("\n", " ")
+            image["after"] = r["plain"][offset:offset+60].replace("\n", " ")
+        empty = not r["plain"].strip() and not r["md"].strip()
+        classes = set((node.get("class") or "").split())
+        result = "[пауза]" if empty else r["md"]
+        tag = kind(node)
+        if empty:
+            self.empty_p += 1
+        elif tag in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+            level = int(tag[1])
+            heading_content = result.replace("  \n", " ").replace("\n", " ")
+            result = "#" * level + " " + heading_content
+        elif "font-1em30" in classes:
+            result = "## " + result.replace("  \n", " ").replace("\n", " ")
+        elif "font-1em10" in classes:
+            result = "### " + result.replace("  \n", " ").replace("\n", " ")
+        elif Path(page).stem in {"p-titlepage", "titlepage"} and r["plain"].strip() == self.title:
+            result = "# " + result
+        self.p_count += 1
         return result
 
     def audit_inline(self,node,in_ruby=False):
@@ -490,8 +536,8 @@ class Extractor:
                         result=self.render_node(child,rel,{"leading":True})
                         if result["md"].strip():blocks.append(result["md"].strip())
                     # Element tails belong to the parent's mixed content, even when recursion was used.
-                    if not isinstance(child,etree._Comment) and child.tail and child.tail.strip():
-                        blocks.append(self.render_text(child.tail,{"leading":True})["md"])
+                    if child.tail and child.tail.strip():
+                        blocks.append(self.render_text(child.tail, {"leading": True})["md"])
             visit(bodies[0])
             self.stats[rel]={"p":len(bodies[0].xpath(".//*[local-name()='p']")),
                 "ruby":len(bodies[0].xpath(".//*[local-name()='ruby']")),"rt":len(bodies[0].xpath(".//*[local-name()='rt']")),
@@ -625,8 +671,18 @@ class Extractor:
             "Не переносить старый CSS/fixed-layout/шрифты. Собрать reflowable EPUB по instructions/pasport proekta.md, восстановить ресурсы по EPUB_IMAGE-маркерам и выполнить EPUBCheck после упаковки."]
         return "\n".join(rows)+"\n"
 
-    def run(self,overwrite=False,dry_run=False):
-        if not self.item.is_dir():raise RuntimeError("Source folder missing: "+str(self.item))
+    def run(self, overwrite=False, dry_run=False):
+        md_path = self.output_dir / ("volume" + str(self.volume) + ".md")
+        report_path = self.output_dir / ("volume" + str(self.volume) + "_report.md")
+        if not dry_run and not overwrite:
+            present = [path for path in (md_path, report_path) if path.exists()]
+            if present:
+                raise RuntimeError(
+                    "Refusing to overwrite: " + ", ".join(map(str, present)) +
+                    ". Use --overwrite or --output-dir."
+                )
+        if not self.item.is_dir():
+            raise RuntimeError("Source folder missing: " + str(self.item))
         self.load_opf();self.load_nav();self.load_xhtml();self.scan_refs();self.inventory_files()
         for item in self.spine:
             rel=item["relative"]
@@ -639,11 +695,7 @@ class Extractor:
             else:self.warnings.append("Default and alternate ruby delimiters occur literally; ambiguous cases require HTML ruby.")
         self.render_spine()
         md=self.main_markdown();report=self.make_report()
-        md_path=self.output_dir/("volume"+str(self.volume)+".md")
-        report_path=self.output_dir/("volume"+str(self.volume)+"_report.md")
         if not dry_run:
-            present=[x for x in (md_path,report_path) if x.exists()]
-            if present and not overwrite:raise RuntimeError("Refusing to overwrite existing output(s): "+", ".join(map(str,present))+". Use --overwrite or --output-dir.")
             self.output_dir.mkdir(parents=True,exist_ok=True)
             md_path.write_text(md,encoding="utf-8",newline="\n");report_path.write_text(report,encoding="utf-8",newline="\n")
         return {"volume":self.volume,"output_markdown":str(md_path),"output_report":str(report_path),
@@ -660,8 +712,13 @@ def main(argv=None):
     ap.add_argument("--allow-partial",action="store_true",help="Continue despite missing/unparseable files; record every issue.")
     ap.add_argument("--overwrite",action="store_true",help="Allow replacing existing output files.")
     ap.add_argument("--dry-run",action="store_true",help="Run checks without writing files.")
+    ap.add_argument("--github-repo", default="PikaWarrior/SukaMoka", help="GitHub owner/repo used to build report links.")
+    ap.add_argument("--github-ref", default="main", help="Git ref/branch used in report links.")
     args=ap.parse_args(argv);root=args.repo_root.resolve();out=(args.output_dir or root).resolve()
-    try:result=Extractor(args.volume,root,out,args.allow_partial).run(args.overwrite,args.dry_run)
+    if sys.version_info < (3, 10):
+        print("ERROR: Python 3.10 or newer is required.", file=sys.stderr)
+        return 2
+    try:result=Extractor(args.volume,root,out,args.allow_partial,args.github_repo,args.github_ref).run(args.overwrite,args.dry_run)
     except (RuntimeError,etree.XMLSyntaxError,OSError) as exc:
         print("ERROR: "+str(exc),file=sys.stderr);return 2
     print(json.dumps(result,ensure_ascii=False,indent=2))

@@ -13,7 +13,7 @@ import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import quote, unquote, urlsplit
 from lxml import etree
 
 OPF = "http://www.idpf.org/2007/opf"
@@ -55,7 +55,7 @@ def base_of(node, in_ruby=False):
     if t in {"#comment", "#pi"}: return ""
     if t == "#entity": return str(node)
     current = in_ruby or t == "ruby"
-    if t == "rt" and current: return ""
+    if t in {"rt", "rp"} and current: return ""
     if t in {"img","image"}: return ""
     out = "\n" if t == "br" else (getattr(node,"text",None) or "")
     for child in node:
@@ -72,6 +72,17 @@ def code(text):
 def table(text):
     return str(text if text is not None else "").replace("|",r"\|").replace("\r"," ").replace("\n"," ")
 
+def table_code(text):
+    # HTML entities keep literal pipes from splitting Markdown table cells.
+    escaped = (str(text if text is not None else "").replace("&", "&amp;")
+               .replace("<", "&lt;").replace(">", "&gt;").replace("|", "&#124;"))
+    return "<code>" + escaped + "</code>"
+
+def escape_markdown_text(text):
+    # Encode HTML-significant characters and escape CommonMark punctuation.
+    value = str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return re.sub(r"([\\\x60*_{}\[\]()#+\-.!|])", r"\\\1", value)
+
 class Extractor:
     def __init__(self, volume, root, output_dir, allow_partial=False):
         self.volume = volume
@@ -87,6 +98,10 @@ class Extractor:
         self.references, self.css_refs, self.comments, self.pis = [], [], [], []
         self.unknown, self.ruby_issues, self.text_mismatches, self.reading_mismatches = [], [], [], []
         self.main_blocks, self.stats, self.inventory = [], {}, []
+        self.class_usage, self.class_tag_usage = Counter(), Counter()
+        self.indent_audit = []
+        self.link_checks = []
+        self.package_usage = defaultdict(list)
         self.p_count = self.empty_p = self.br_count = self.em_count = 0
         self.indent_removed = 0
         self.literal_brackets = 0
@@ -115,9 +130,18 @@ class Extractor:
 
     def note_tree(self, rel, tree):
         for node in walk(tree.getroot()):
-            if kind(node) == "#comment": self.comments.append((rel, tree.getpath(node), node.text or ""))
-            elif kind(node) == "#pi": self.pis.append((rel, tree.getpath(node), str(node)))
-            elif kind(node) == "#entity": self.warnings.append("Unresolved XML entity: " + rel + " " + str(node))
+            node_kind = kind(node)
+            if node_kind == "#comment":
+                self.comments.append((rel, tree.getpath(node), node.text or ""))
+            elif node_kind == "#pi":
+                self.pis.append((rel, tree.getpath(node), str(node)))
+            elif node_kind == "#entity":
+                self.warnings.append("Unresolved XML entity: " + rel + " " + str(node))
+            if isinstance(getattr(node, "tag", None), str):
+                classes = (node.get("class") or "").split()
+                for class_name in classes:
+                    self.class_usage[class_name] += 1
+                    self.class_tag_usage[(class_name, kind(node))] += 1
 
     def load_opf(self):
         path = self.item / "standard.opf"
@@ -127,22 +151,37 @@ class Extractor:
             href = node.get("href","")
             target = self.resolve(self.item,href)
             rec = dict(node.attrib)
-            rec.update(path=target, relative=self.rel(target) if target else "", exists=bool(target and target.is_file()), referenced=False)
+            rec.update(path=target, relative=self.rel(target) if target else "", exists=bool(target and target.is_file()), referenced=False, package_uses=[])
             if rec.get("id") in self.by_id: self.warnings.append("Duplicate manifest id: " + str(rec.get("id")))
             self.manifest.append(rec)
             self.by_id[rec.get("id")] = rec
         for node in tree.xpath("./opf:spine/opf:itemref", namespaces=NS):
             idref = node.get("idref","")
             rec = self.by_id.get(idref)
-            if not rec: self.issue("spine idref lacks manifest entry: " + idref)
+            if not rec:
+                self.issue("spine idref lacks manifest entry: " + idref)
+            else:
+                rec["package_uses"].append("spine")
             self.spine.append({"idref":idref,"record":rec,"relative":rec.get("relative") if rec else None,"linear":node.get("linear","yes")})
+        toc_id = tree.getroot().xpath("./opf:spine/@toc", namespaces=NS)
+        if toc_id and toc_id[0] in self.by_id:
+            self.by_id[toc_id[0]]["package_uses"].append("spine@toc")
         titles = tree.xpath(".//dc:title", namespaces=NS)
         self.title = text_of(titles[0]).strip() if titles else ""
         nav = [x for x in self.manifest if "nav" in x.get("properties","").split()]
         self.nav_path = nav[0].get("path") if nav else None
-        if not self.nav_path and (self.item/"navigation-documents.xhtml").is_file():
+        if nav:
+            nav[0]["package_uses"].append("EPUB3 navigation")
+        ncx_candidates = [x for x in self.manifest if x.get("media-type") == "application/x-dtbncx+xml"]
+        if self.nav_path is None:
+            toc_matches = [x for x in ncx_candidates if x.get("id") in tree.getroot().xpath("./opf:spine/@toc", namespaces=NS)]
+            candidate = toc_matches[0] if toc_matches else (ncx_candidates[0] if ncx_candidates else None)
+            if candidate:
+                self.nav_path = candidate.get("path")
+                candidate["package_uses"].append("EPUB2 NCX")
+        if self.nav_path is None and (self.item/"navigation-documents.xhtml").is_file():
             self.nav_path = self.item/"navigation-documents.xhtml"
-            self.warnings.append("Navigation document found by conventional filename, not manifest nav property.")
+            self.warnings.append("Navigation file found by conventional filename, not by manifest navigation declaration.")
         self.note_tree("standard.opf",tree)
 
     def load_nav(self):
@@ -155,10 +194,23 @@ class Extractor:
             self.issue("Cannot parse nav document: " + str(exc)); return
         self.docs[rel] = tree
         self.note_tree(rel,tree)
-        for a in tree.xpath("//*[local-name()='nav']//*[local-name()='a'][@href]"):
-            href = a.get("href","")
-            target = self.resolve(self.nav_path.parent,href)
-            rec = {"source":rel,"href":href,"label":text_of(a).strip(),"target":self.rel(target) if target else "","fragment":urlsplit(href).fragment}
+        anchors = tree.xpath("//*[local-name()='nav']//*[local-name()='a'][@href]")
+        if not anchors:
+            # EPUB 2 navigation uses NCX navPoint/navLabel/text + content/@src.
+            for point in tree.xpath("//*[local-name()='navPoint']"):
+                labels = point.xpath("./*[local-name()='navLabel']/*[local-name()='text'][1]")
+                contents = point.xpath("./*[local-name()='content'][1]/@src")
+                if labels and contents:
+                    anchors.append((labels[0], contents[0]))
+        for entry in anchors:
+            if isinstance(entry, tuple):
+                label_node, href = entry
+                label = text_of(label_node).strip()
+            else:
+                href = entry.get("href", "")
+                label = text_of(entry).strip()
+            target = self.resolve(self.nav_path.parent, href)
+            rec = {"source":rel,"href":href,"label":label,"target":self.rel(target) if target else "","fragment":urlsplit(href).fragment}
             self.nav_links.append(rec)
             if target: self.nav_by_page[rec["target"]].append(rec)
 

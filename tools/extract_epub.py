@@ -717,50 +717,50 @@ class Extractor:
             bodies=tree.xpath("//*[local-name()='body']")
             if not bodies:
                 self.warnings.append("Body element missing: "+rel);self.main_blocks.append("<!-- SOURCE HAS NO BODY: "+rel+" -->");continue
-             blocks=[];pnum=[0]
-             block_tags={"p","h1","h2","h3","h4","h5","h6"}
+            blocks=[];pnum=[0]
+            block_tags={"p","h1","h2","h3","h4","h5","h6"}
 
-             def contains_block(node):
-                 return any(kind(descendant) in block_tags for descendant in walk(node) if descendant is not node)
+            def contains_block(node):
+                return any(kind(descendant) in block_tags for descendant in walk(node) if descendant is not node)
 
-             def visit(container):
-                 t=kind(container)
-                 if t in {"#comment","#pi"}:return
-                 if t in block_tags:
-                     pnum[0]+=1;blocks.append(self.render_p(container,rel,pnum[0]));return
-                 if t in {"img","image","svg"}:
-                     result=self.render_node(container,rel,{"leading":True})
-                     rendered=result["md"].strip()
-                     if rendered:
-                         blocks.append(escape_markdown_block_starts(rendered))
-                     return
-                 # A subtree without paragraph/heading boundaries is one mixed-content run.
-                 # This prevents comments/inline tags from splitting a continuous source phrase.
-                 if not contains_block(container):
-                     result=self.render_node(container,rel,{"leading":True})
-                     rendered=result["md"].strip()
-                     if rendered:
-                         blocks.append(escape_markdown_block_starts(rendered))
-                     return
-                 inline_parts=[]
-                 def flush_inline():
-                     joined="".join(inline_parts)
-                     inline_parts.clear()
-                     if joined.strip():
-                         blocks.append(escape_markdown_block_starts(joined.strip()))
-                 if container.text:
-                     inline_parts.append(self.render_text(container.text,{"leading":True})["md"])
-                 for child in container:
-                     if kind(child) in block_tags or contains_block(child):
-                         flush_inline()
-                         visit(child)
-                     else:
-                         inline_parts.append(self.render_node(child,rel,{"leading":not bool("".join(inline_parts))})["md"])
-                     # Even a comment's tail is real text and stays in this inline run.
-                     if child.tail:
-                         inline_parts.append(self.render_text(child.tail,{"leading":not bool("".join(inline_parts))})["md"])
-                 flush_inline()
-             visit(bodies[0])
+            def visit(container):
+                t=kind(container)
+                if t in {"#comment","#pi"}:return
+                if t in block_tags:
+                    pnum[0]+=1;blocks.append(self.render_p(container,rel,pnum[0]));return
+                if t in {"img","image","svg"}:
+                    result=self.render_node(container,rel,{"leading":True})
+                    rendered=result["md"].strip()
+                    if rendered:
+                        blocks.append(escape_markdown_block_starts(rendered))
+                    return
+                # A subtree without paragraph/heading boundaries is one mixed-content run.
+                # This prevents comments/inline tags from splitting a continuous source phrase.
+                if not contains_block(container):
+                    result=self.render_node(container,rel,{"leading":True})
+                    rendered=result["md"].strip()
+                    if rendered:
+                        blocks.append(escape_markdown_block_starts(rendered))
+                    return
+                inline_parts=[]
+                def flush_inline():
+                    joined="".join(inline_parts)
+                    inline_parts.clear()
+                    if joined.strip():
+                        blocks.append(escape_markdown_block_starts(joined.strip()))
+                if container.text:
+                    inline_parts.append(self.render_text(container.text,{"leading":True})["md"])
+                for child in container:
+                    if kind(child) in block_tags or contains_block(child):
+                        flush_inline()
+                        visit(child)
+                    else:
+                        inline_parts.append(self.render_node(child,rel,{"leading":not bool("".join(inline_parts))})["md"])
+                    # Even a comment's tail is real text and stays in this inline run.
+                    if child.tail:
+                        inline_parts.append(self.render_text(child.tail,{"leading":not bool("".join(inline_parts))})["md"])
+                flush_inline()
+            visit(bodies[0])
             self.stats[rel]={"p":len(bodies[0].xpath(".//*[local-name()='p']")),
                 "ruby":len(bodies[0].xpath(".//*[local-name()='ruby']")),"rt":len(bodies[0].xpath(".//*[local-name()='rt']")),
                 "images":len(bodies[0].xpath(".//*[local-name()='img' or local-name()='image']")),

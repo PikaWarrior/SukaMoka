@@ -583,7 +583,7 @@ class Extractor:
                 "file": page, "p": pnum,
                 "source": expected[:160], "rendered": r["plain"][:160],
             })
-        source_readings = [text_of(x) for x in node.xpath(".//*[local-name()='rt']")]
+        source_readings = [text_of(x) for x in node.xpath(".//*[local-name()='ruby']//*[local-name()='rt']")]
         if r["readings"] != source_readings:
             self.reading_mismatches.append({
                 "file": page, "p": pnum,

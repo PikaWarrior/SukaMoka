@@ -8,6 +8,7 @@ Existing outputs are not replaced without --overwrite.
 from __future__ import annotations
 import argparse
 import hashlib
+import html
 import json
 import re
 import sys
@@ -98,20 +99,26 @@ def markdown_url(url):
     return quote(str(url), safe="/:#?&=%+@;,$!~*'")
 
 def escape_markdown_text(text):
-    """Escape literal source text for Markdown without changing the plain-text audit layer."""
+    """Escape literal text characters without applying block rules to fragments."""
     value = str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    value = re.sub(r"([\\\x60*_{}\[\]|~])", r"\\\1", value)
-    lines = value.splitlines(keepends=True)
-    escaped_lines = []
-    for line in lines:
-        match = re.match(r"^([ \t]*)(?:(#{1,6})(?=\s)|([>+\-])(?=\s)|([0-9]+)([.)])(?=\s)|(-{3,}|_{3,}|={3,}|~{3,}|\*{3,})\s*$)", line)
+    return re.sub(r"([\\\x60*_{}\[\]|~])", r"\\\1", value)
+
+
+def escape_markdown_block_starts(markdown):
+    """Protect Markdown block markers at the start of complete rendered lines."""
+    output = []
+    for line in markdown.splitlines(keepends=True):
+        match = re.match(
+            r"^([ \t]*)(?:(#{1,6})(?=\s)|([>+\-])(?=\s)|([0-9]+)([.)])(?=\s)|(-{3,}|_{3,}|={3,}|~{3,}|\*{3,})\s*$)",
+            line,
+        )
         if match:
             prefix = match.group(1)
             slash = chr(92)
             marker_index = len(prefix) + len(match.group(4)) if match.group(4) else len(prefix)
             line = line[:marker_index] + slash + line[marker_index:]
-        escaped_lines.append(line)
-    return "".join(escaped_lines)
+        output.append(line)
+    return "".join(output)
 
 def serialize_xhtml_fragment(node):
     """Serialize an ambiguous inline XHTML subtree without losing ruby structure."""
@@ -230,6 +237,17 @@ class Extractor:
             if rec.get("id") in self.by_id: self.warnings.append("Duplicate manifest id: " + str(rec.get("id")))
             self.manifest.append(rec)
             self.by_id[rec.get("id")] = rec
+        # EPUB 2 expresses cover usage through metadata rather than properties="cover-image".
+        cover_ids = tree.getroot().xpath(
+            "./opf:metadata/opf:meta[translate(@name, 'COVER', 'cover')='cover']/@content",
+            namespaces=NS,
+        )
+        for cover_id in cover_ids:
+            cover_rec = self.by_id.get(cover_id)
+            if cover_rec:
+                cover_rec["package_uses"].append("EPUB2 cover metadata")
+            else:
+                self.issue("EPUB2 cover metadata references unknown manifest id: " + cover_id)
         for node in tree.xpath("./opf:spine/opf:itemref", namespaces=NS):
             idref = node.get("idref","")
             rec = self.by_id.get(idref)
@@ -474,8 +492,12 @@ class Extractor:
             val=str(node);self.warnings.append("Unresolved entity rendered literally: "+page+" "+val)
             return {"md":val,"plain":val,"readings":[],"images":[]}
         if t=="rt" and not in_ruby:
-            val=text_of(node);self.ruby_issues.append({"file":page,"path":node.getroottree().getpath(node),"issue":"rt outside ruby","text":val})
-            return {"md":"<rt>"+val+"</rt>","plain":val,"readings":[],"images":[]}
+            val=text_of(node)
+            self.ruby_issues.append({
+                "file": page, "path": node.getroottree().getpath(node),
+                "issue": "rt outside ruby", "text": val,
+            })
+            return {"md":"<rt>"+html.escape(val, quote=False)+"</rt>","plain":val,"readings":[],"images":[]}
         if t in {"img","image"}:
             marker,rec=self.add_image(node,page,pnum)
             return {"md":marker,"plain":"","readings":[],"images":[(rec,0)]}
@@ -582,18 +604,25 @@ class Extractor:
         classes = set((node.get("class") or "").split())
         result = "[пауза]" if empty else r["md"]
         tag = kind(node)
+        is_heading = False
         if empty:
             self.empty_p += 1
         elif tag in {"h1", "h2", "h3", "h4", "h5", "h6"}:
             level = int(tag[1])
             heading_content = result.replace("  \n", " ").replace("\n", " ")
             result = "#" * level + " " + heading_content
+            is_heading = True
         elif "font-1em30" in classes:
             result = "## " + result.replace("  \n", " ").replace("\n", " ")
+            is_heading = True
         elif "font-1em10" in classes:
             result = "### " + result.replace("  \n", " ").replace("\n", " ")
+            is_heading = True
         elif Path(page).stem in {"p-titlepage", "titlepage"} and r["plain"].strip() == self.title:
             result = "# " + result
+            is_heading = True
+        if not empty and not is_heading:
+            result = escape_markdown_block_starts(result)
         self.p_count += 1
         return result
 
@@ -685,32 +714,54 @@ class Extractor:
                     safe_title=title_value.replace("--","- -")
                     self.main_blocks.append("<!-- XHTML head/title is metadata and was not inserted into the book body: "+rel+"; title="+safe_title+". See the head/title audit in the report. -->")
             heading=self.nav_heading(rel,tree)
-            if heading:self.main_blocks.append("## "+heading)
+            if heading:self.main_blocks.append("## "+escape_markdown_text(heading))
             bodies=tree.xpath("//*[local-name()='body']")
             if not bodies:
                 self.warnings.append("Body element missing: "+rel);self.main_blocks.append("<!-- SOURCE HAS NO BODY: "+rel+" -->");continue
-            blocks=[];pnum=[0]
-            def visit(container):
-                t=kind(container)
-                if t in {"#comment","#pi"}:return
-                if t in {"p","h1","h2","h3","h4","h5","h6"}:
-                    pnum[0]+=1;blocks.append(self.render_p(container,rel,pnum[0]));return
-                if t in {"img","image","svg"}:
-                    result=self.render_node(container,rel,{"leading":True})
-                    if result["md"].strip():blocks.append(result["md"].strip())
-                    return
-                if getattr(container,"text",None) and container.text.strip():
-                    blocks.append(self.render_text(container.text,{"leading":True})["md"])
-                for child in container:
-                    if any(kind(x) in {"p","h1","h2","h3","h4","h5","h6"} for x in walk(child)):
-                        visit(child)
-                    else:
-                        result=self.render_node(child,rel,{"leading":True})
-                        if result["md"].strip():blocks.append(result["md"].strip())
-                    # Element tails belong to the parent's mixed content, even when recursion was used.
-                    if child.tail and child.tail.strip():
-                        blocks.append(self.render_text(child.tail, {"leading": True})["md"])
-            visit(bodies[0])
+             blocks=[];pnum=[0]
+             block_tags={"p","h1","h2","h3","h4","h5","h6"}
+
+             def contains_block(node):
+                 return any(kind(descendant) in block_tags for descendant in walk(node) if descendant is not node)
+
+             def visit(container):
+                 t=kind(container)
+                 if t in {"#comment","#pi"}:return
+                 if t in block_tags:
+                     pnum[0]+=1;blocks.append(self.render_p(container,rel,pnum[0]));return
+                 if t in {"img","image","svg"}:
+                     result=self.render_node(container,rel,{"leading":True})
+                     rendered=result["md"].strip()
+                     if rendered:
+                         blocks.append(escape_markdown_block_starts(rendered))
+                     return
+                 # A subtree without paragraph/heading boundaries is one mixed-content run.
+                 # This prevents comments/inline tags from splitting a continuous source phrase.
+                 if not contains_block(container):
+                     result=self.render_node(container,rel,{"leading":True})
+                     rendered=result["md"].strip()
+                     if rendered:
+                         blocks.append(escape_markdown_block_starts(rendered))
+                     return
+                 inline_parts=[]
+                 def flush_inline():
+                     joined="".join(inline_parts)
+                     inline_parts.clear()
+                     if joined.strip():
+                         blocks.append(escape_markdown_block_starts(joined.strip()))
+                 if container.text:
+                     inline_parts.append(self.render_text(container.text,{"leading":True})["md"])
+                 for child in container:
+                     if kind(child) in block_tags or contains_block(child):
+                         flush_inline()
+                         visit(child)
+                     else:
+                         inline_parts.append(self.render_node(child,rel,{"leading":not bool("".join(inline_parts))})["md"])
+                     # Even a comment's tail is real text and stays in this inline run.
+                     if child.tail:
+                         inline_parts.append(self.render_text(child.tail,{"leading":not bool("".join(inline_parts))})["md"])
+                 flush_inline()
+             visit(bodies[0])
             self.stats[rel]={"p":len(bodies[0].xpath(".//*[local-name()='p']")),
                 "ruby":len(bodies[0].xpath(".//*[local-name()='ruby']")),"rt":len(bodies[0].xpath(".//*[local-name()='rt']")),
                 "images":len(bodies[0].xpath(".//*[local-name()='img' or local-name()='image']")),

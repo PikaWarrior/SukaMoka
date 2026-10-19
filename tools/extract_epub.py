@@ -205,6 +205,8 @@ class Extractor:
             target = self.resolve(self.item,href)
             rec = dict(node.attrib)
             rec.update(path=target, relative=self.rel(target) if target else "", exists=bool(target and target.is_file()), referenced=False, package_uses=[])
+            if "cover-image" in rec.get("properties", "").split():
+                rec["package_uses"].append("cover-image property")
             if rec.get("id") in self.by_id: self.warnings.append("Duplicate manifest id: " + str(rec.get("id")))
             self.manifest.append(rec)
             self.by_id[rec.get("id")] = rec
@@ -295,6 +297,47 @@ class Extractor:
                     self.issue("Cannot parse spine XHTML " + rel + ": " + str(exc));self.errors[rel]=str(exc)
         self.extra_xhtml = [x for x in self.manifest if x.get("media-type")=="application/xhtml+xml" and x.get("relative") not in spine_paths and x.get("relative") != nav_rel]
 
+    def check_internal_link(self, source_rel, href):
+        parsed = urlsplit(href)
+        if parsed.scheme.lower() in EXTERNAL or href.startswith("//"):
+            return
+        if not parsed.path and not parsed.fragment:
+            return
+        source_path = self.item / source_rel
+        target = source_path if not parsed.path else self.resolve(source_path.parent, href)
+        if target is None:
+            self.link_checks.append({"source": source_rel, "href": href, "target": "", "status": "unresolved path"})
+            return
+        target_rel = self.rel(target)
+        record = {"source": source_rel, "href": href, "target": target_rel, "status": "OK", "fragment": unquote(parsed.fragment)}
+        if not target.is_file():
+            record["status"] = "missing target file"
+        elif parsed.fragment and target.suffix.lower() in {".xhtml", ".html", ".htm", ".xml", ".ncx"}:
+            tree = self.docs.get(target_rel)
+            if tree is None:
+                try:
+                    tree = parse(target)
+                    self.docs[target_rel] = tree
+                    self.note_tree(target_rel, tree)
+                except etree.XMLSyntaxError as exc:
+                    record["status"] = "target XML could not be parsed"
+                    record["detail"] = str(exc)
+            if tree is not None:
+                fragment = unquote(parsed.fragment)
+                matches = tree.xpath(
+                    "//*[@id=$fragment or @xml:id=$fragment]",
+                    fragment=fragment,
+                    namespaces={"xml": "http://www.w3.org/XML/1998/namespace"},
+                )
+                if not matches:
+                    record["status"] = "missing fragment id"
+        self.link_checks.append(record)
+        if record["status"] != "OK":
+            self.warnings.append(
+                "Internal link check: " + source_rel + " href=" + href +
+                " -> " + target_rel + " (" + record["status"] + ")"
+            )
+
     def scan_refs(self):
         for rec in self.manifest:
             if not rec["exists"]: self.issue("Manifest file missing: " + str(rec.get("href")))
@@ -302,6 +345,10 @@ class Extractor:
             base=(self.item/rel).parent
             for n in walk(tree.getroot()):
                 if not isinstance(getattr(n,"tag",None),str): continue
+                if kind(n) in {"a", "area", "content"}:
+                    link_href = n.get("href") or n.get("src") or ""
+                    if link_href:
+                        self.check_internal_link(rel, link_href)
                 for attr,val in n.attrib.items():
                     if etree.QName(attr).localname.lower() not in {"src","href","poster","data"}: continue
                     target=self.resolve(base,val)
@@ -623,7 +670,7 @@ class Extractor:
         spine_paths={x["relative"] for x in self.spine if x["relative"]}
         nav_rel=self.rel(self.nav_path) if self.nav_path else ""
         extra=[x for x in self.manifest if x.get("media-type")=="application/xhtml+xml" and x["relative"] not in spine_paths]
-        unused=[x for x in self.manifest if not x["referenced"]]
+        unused=[x for x in self.manifest if not x["referenced"] and not x["package_uses"]]
         marked={x["resource"] for x in self.images}
         img_manifest={x["relative"] for x in self.manifest if str(x.get("media-type","")).startswith("image/")}
         unmarked=sorted(img_manifest-marked)
@@ -662,7 +709,7 @@ class Extractor:
                 rows.append("| "+code(rel)+" | "+table(value)+" | "+decision+" |")
         rows += ["","## Навигационные ссылки","",
             "| Текст | href | Целевой файл |","|---|---|---|"]
-        rows += ["| "+table(x["label"])+" | "+code(x["href"])+" | "+code(x["target"])+" |" for x in self.nav_links]
+        rows += ["| "+table(x["label"])+" | "+table_code(x["href"])+" | "+table_code(x["target"])+" |" for x in self.nav_links]
         rows += ["","## Проверки","",
             "- XHTML parse errors: "+str(len(self.errors))+".",
             "- Spine items: "+str(len(self.spine))+"; сопоставлены с manifest: "+str(sum(bool(x["record"]) for x in self.spine))+".",
@@ -686,13 +733,15 @@ class Extractor:
         rows += ["- PI "+code(a)+" "+b+": "+table(c) for a,b,c in self.pis]
         rows += ["","### CSS url() references",""]
         rows += ["- "+code(x["source"])+" url("+code(x["href"])+") -> "+code(x["target"])+("" if x["exists"] else " [missing]") for x in self.css_refs] or ["Локальные CSS-ссылки url() не найдены."]
-        rows += ["","## Проверка локальных ссылок","",
-            "| XHTML/CSS source | Href | Resolved path | Status |","|---|---|---|---|"]
+        rows += ["","## Проверка локальных ресурсов и фрагментов","",
+            "| Source | Href | Resolved path | Status |","|---|---|---|---|"]
         all_refs = self.references + self.css_refs
-        if not all_refs:
-            rows.append("Локальных ссылок на ресурсы не найдено.")
         for ref in all_refs:
-            rows.append("| "+code(ref["source"])+" | "+code(ref["href"])+" | "+code(ref["target"])+" | "+("OK" if ref["exists"] else "MISSING")+" |")
+            rows.append("| "+table_code(ref["source"])+" | "+table_code(ref["href"])+" | "+table_code(ref["target"])+" | "+("OK" if ref["exists"] else "MISSING")+" |")
+        for link in self.link_checks:
+            rows.append("| "+table_code(link["source"])+" | "+table_code(link["href"])+" | "+table_code(link["target"])+" | "+table(link["status"])+" |")
+        if not all_refs and not self.link_checks:
+            rows.append("Локальных ссылок на ресурсы или внутренние фрагменты не найдено.")
         rows += ["","## Карта размещений изображений","",
             "Каждый маркер относится к отдельному occurrence. Ресурс восстанавливается из пути в таблице, позиция — по маркеру и исходному XHTML. Текст внутри изображений этим скриптом не распознаётся.", "",
             "| № | Маркер | Ресурс | XHTML-источник | Тип/статус | Контекст | Атрибуты |","|---:|---|---|---|---|---|---|"]
@@ -700,7 +749,7 @@ class Extractor:
             clas="gaiji (класс XHTML; глиф не проверен)" if "gaiji" in im["classes"] else "изображение, визуально не проверено"
             rp="raw/"+str(self.volume)+"/item/"+im["resource"];xp="raw/"+str(self.volume)+"/item/"+im["source"]
             ctx=(im["before"]+" [IMAGE] "+im["after"]).strip()
-            rows.append("| "+str(i)+" | "+code(im["marker"])+" | ["+code(rp)+"](https://github.com/PikaWarrior/SukaMoka/blob/main/"+rp+") | ["+code(xp)+"](https://github.com/PikaWarrior/SukaMoka/blob/main/"+xp+") | "+clas+" | "+table(ctx)+" | "+code(json.dumps(im["attributes"],ensure_ascii=False))+" |")
+            rows.append("| "+str(i)+" | "+table_code(im["marker"])+" | ["+table_code(rp)+"]("+self.github_url(rp)+") | ["+table_code(xp)+"]("+self.github_url(xp)+") | "+clas+" | "+table(ctx)+" | "+table_code(json.dumps(im["attributes"],ensure_ascii=False))+" |")
         rows += ["","## XHTML из manifest вне spine",""]
         if not extra:rows.append("Других XHTML, кроме navigation-документа, вне spine не найдено.")
         for rec in extra:

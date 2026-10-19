@@ -41,6 +41,59 @@ jobs:
           echo "Volume 4 extractor exit: $volume4_status" >> "$GITHUB_STEP_SUMMARY"
           echo "Volume 5 extractor exit: $volume5_status" >> "$GITHUB_STEP_SUMMARY"
           if [ "$volume4_status" -ne 0 ] || [ "$volume5_status" -ne 0 ]; then exit 1; fi
+      - name: Compare volume 4 extractor output with tracked source
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import difflib
+          import hashlib
+          import json
+          import os
+
+          pairs = [
+              ("volume4.md", Path(os.environ["RUNNER_TEMP"]) / "volume4-smoke" / "volume4.md"),
+              ("volume4_report.md", Path(os.environ["RUNNER_TEMP"]) / "volume4-smoke" / "volume4_report.md"),
+          ]
+          summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          with summary.open("a", encoding="utf-8") as out:
+              out.write("\n## Comparison: tracked volume 4 vs lxml extractor\n\n")
+              for tracked_name, generated_path in pairs:
+                  tracked_path = Path(tracked_name)
+                  if not tracked_path.exists() or not generated_path.exists():
+                      out.write(f"- {tracked_name}: comparison unavailable (one or both files missing).\n")
+                      continue
+                  old_bytes = tracked_path.read_bytes()
+                  new_bytes = generated_path.read_bytes()
+                  old_text = old_bytes.decode("utf-8")
+                  new_text = new_bytes.decode("utf-8")
+                  old_lines = old_text.splitlines(keepends=True)
+                  new_lines = new_text.splitlines(keepends=True)
+                  matcher = difflib.SequenceMatcher(a=old_lines, b=new_lines, autojunk=False)
+                  changed = [op for op in matcher.get_opcodes() if op[0] != "equal"]
+                  added = sum(j2-j1 for tag, i1, i2, j1, j2 in changed if tag in {"insert", "replace"})
+                  removed = sum(i2-i1 for tag, i1, i2, j1, j2 in changed if tag in {"delete", "replace"})
+                  data = {
+                      "file": tracked_name,
+                      "identical_bytes": old_bytes == new_bytes,
+                      "tracked_bytes": len(old_bytes),
+                      "generated_bytes": len(new_bytes),
+                      "tracked_lines": len(old_lines),
+                      "generated_lines": len(new_lines),
+                      "tracked_sha256": hashlib.sha256(old_bytes).hexdigest(),
+                      "generated_sha256": hashlib.sha256(new_bytes).hexdigest(),
+                      "line_similarity_ratio": round(matcher.ratio(), 6),
+                      "changed_opcode_blocks": len(changed),
+                      "approx_lines_added_or_replaced": added,
+                      "approx_lines_removed_or_replaced": removed,
+                  }
+                  out.write("### " + tracked_name + "\n\n")
+                  out.write(json.dumps(data, ensure_ascii=False, indent=2) + "\n\n")
+                  diff = list(difflib.unified_diff(old_lines, new_lines, fromfile="tracked/" + tracked_name, tofile="lxml/" + tracked_name, n=2))
+                  if diff:
+                      out.write("First diff excerpt (at most 180 lines):\n\n")
+                      out.writelines(diff[:180])
+                      out.write("\n\n")
+          PY
       - name: Upload real-volume smoke-test outputs
         if: always()
         uses: actions/upload-artifact@v4

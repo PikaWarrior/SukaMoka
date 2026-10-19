@@ -26,6 +26,7 @@ class ExtractorIntegrationTests(unittest.TestCase):
   <manifest>
     <item id="nav" href="navigation-documents.xhtml" media-type="application/xhtml+xml" properties="nav"/>
     <item id="style" href="style/book.css" media-type="text/css"/>
+    <item id="reset-style" href="style/reset.css" media-type="text/css"/>
     <item id="p-second" href="xhtml/p-second.xhtml" media-type="application/xhtml+xml"/>
     <item id="p-first" href="xhtml/p-first.xhtml" media-type="application/xhtml+xml"/>
     <item id="diagram" href="image/diagram.png" media-type="image/png"/>
@@ -65,7 +66,8 @@ class ExtractorIntegrationTests(unittest.TestCase):
 <!-- comment text is omitted, but this tail must survive -->COMMENT_TAIL_VISIBLE
 </div></body></html>
 """)
-        write(item / "style" / "book.css", "body { background-image: url('../image/diagram.png'); }\n")
+        write(item / "style" / "book.css", '@import "reset.css"; /* @import "commented.css"; */ body { background-image: url("../image/diagram.png"); }\n')
+        write(item / "style" / "reset.css", "p { margin: 0; }\n")
         (item / "image").mkdir(parents=True, exist_ok=True)
         (item / "image" / "diagram.png").write_bytes(b"fixture, not a real image")
 
@@ -99,6 +101,9 @@ class ExtractorIntegrationTests(unittest.TestCase):
         self.assertNotIn("記(〔き〕)", markdown)
         self.assertIn("Second Part", report)
         self.assertIn("style/book.css", report)
+        self.assertIn("style/reset.css", report)
+        self.assertIn("CSS url() и @import", report)
+        self.assertNotIn("commented.css", report)
         self.assertIn("image/diagram.png", report)
         self.assertIn("alt", report)
         self.assertIn("em-sesame", report)

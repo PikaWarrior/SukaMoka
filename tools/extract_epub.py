@@ -85,7 +85,7 @@ class Extractor:
         self.nav_by_page = defaultdict(list)
         self.images, self.image_counts = [], Counter()
         self.references, self.css_refs, self.comments, self.pis = [], [], [], []
-        self.unknown, self.ruby_issues, self.text_mismatches = [], [], []
+        self.unknown, self.ruby_issues, self.text_mismatches, self.reading_mismatches = [], [], [], []
         self.main_blocks, self.stats, self.inventory = [], {}, []
         self.p_count = self.empty_p = self.br_count = self.em_count = 0
         self.indent_removed = 0
@@ -311,6 +311,9 @@ class Extractor:
         r=self.render_node(node,page,{"leading":True},pnum)
         expected=unindent(base_of(node))
         if r["plain"]!=expected:self.text_mismatches.append({"file":page,"p":pnum,"source":expected[:160],"rendered":r["plain"][:160]})
+        source_readings=[text_of(x) for x in node.xpath(".//*[local-name()='rt']")]
+        if r["readings"]!=source_readings:
+            self.reading_mismatches.append({"file":page,"p":pnum,"source":source_readings,"rendered":r["readings"]})
         for im,off in r["images"]:
             im["paragraph"]=pnum;im["before"]=r["plain"][max(0,off-60):off].replace("\n"," ");im["after"]=r["plain"][off:off+60].replace("\n"," ")
         empty=not r["plain"].strip() and not r["md"].strip()
@@ -483,11 +486,13 @@ class Extractor:
             "- br-элементов: "+str(self.br_count)+"; em-sesame: "+str(self.em_count)+".",
             "- Маркеров изображений: "+str(len(self.images))+"; уникальных ресурсов в маркерах: "+str(len(marked))+".",
             "- Изображений manifest без маркера в spine XHTML: "+str(len(unmarked))+".",
-            "- Расхождений текстового слоя абзацев: "+str(len(self.text_mismatches))+"; ruby warnings: "+str(len(self.ruby_issues))+".",
+            "- Расхождений текстового слоя абзацев: "+str(len(self.text_mismatches))+"; расхождений порядка ruby-чтений: "+str(len(self.reading_mismatches))+"; ruby warnings: "+str(len(self.ruby_issues))+".",
             "- Неизвестных элементов: "+str(len(self.unknown))+"; XML-комментариев: "+str(len(self.comments))+"; processing instructions: "+str(len(self.pis))+".",
             "- Литеральных символов 〔〕 вне rt: "+str(self.literal_brackets)+"; предупреждений: "+str(len(self.warnings))+".",
             "","### Расхождения текстового слоя",""]
         rows += ["- "+code(x["file"])+" p#"+str(x["p"])+": source="+table(x["source"])+"; rendered="+table(x["rendered"]) for x in self.text_mismatches] or ["Не обнаружены."]
+        rows += ["","### Расхождения последовательности ruby-чтений",""]
+        rows += ["- "+code(x["file"])+" p#"+str(x["p"])+": source="+table(json.dumps(x["source"],ensure_ascii=False))+"; rendered="+table(json.dumps(x["rendered"],ensure_ascii=False)) for x in self.reading_mismatches] or ["Не обнаружены."]
         rows += ["","### Ruby warnings",""]
         rows += ["- "+code(x["file"])+" "+x["path"]+": "+table(x["issue"])+"; "+table(x["text"]) for x in self.ruby_issues] or ["Не обнаружены."]
         rows += ["","### Неизвестные элементы",""]
@@ -532,7 +537,8 @@ class Extractor:
             "| Image resources without main-flow marker | "+str(len(unmarked))+" | Image map/resource audit |",
             "| Unmanifested files on disk | "+str(len(non_manifest))+" | "+(", ".join(non_manifest) if non_manifest else "none")+" |",
             "| Text-layer mismatches | "+str(len(self.text_mismatches))+" | Full list above |",
-            "| Ruby warnings | "+str(len(self.ruby_issues))+" | Full list above |",
+            "| Ruby reading sequence mismatches | "+str(len(self.reading_mismatches))+" | Full list above |",
+            "| Ruby warnings | "+str(len(self.ruby_issues))+" | Full list above |
             "| Parse/resource warnings | "+str(len(self.warnings))+" | Full list below |",
             "","### Полный список предупреждений",""]
         rows += ["- "+table(x) for x in self.warnings] or ["Не обнаружены."]
@@ -564,7 +570,7 @@ class Extractor:
         return {"volume":self.volume,"output_markdown":str(md_path),"output_report":str(report_path),
             "markdown_chars":len(md),"report_chars":len(report),"spine_items":len(self.spine),
             "paragraphs":self.p_count,"empty_paragraphs":self.empty_p,"text_mismatches":len(self.text_mismatches),
-            "ruby_warnings":len(self.ruby_issues),"image_occurrences":len(self.images),
+            "reading_mismatches":len(self.reading_mismatches),"ruby_warnings":len(self.ruby_issues),"image_occurrences":len(self.images),
             "parse_errors":len(self.errors),"warnings":len(self.warnings),"dry_run":dry_run}
 
 def main(argv=None):
@@ -580,7 +586,7 @@ def main(argv=None):
     except (RuntimeError,etree.XMLSyntaxError,OSError) as exc:
         print("ERROR: "+str(exc),file=sys.stderr);return 2
     print(json.dumps(result,ensure_ascii=False,indent=2))
-    if result["text_mismatches"] or result["ruby_warnings"] or result["parse_errors"]:
+    if result["text_mismatches"] or result["reading_mismatches"] or result["ruby_warnings"] or result["parse_errors"]:
         print("WARNING: validation issues exist; inspect the report.",file=sys.stderr);return 1
     return 0
 

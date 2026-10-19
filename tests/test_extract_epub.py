@@ -114,6 +114,33 @@ class ExtractorIntegrationTests(unittest.TestCase):
         self.assertEqual(summary["broken_links"], 1)
         self.assertIn("missing fragment id", extractor.make_report())
 
+    def test_epub2_ncx_navigation(self):
+        item = self.root / "raw" / "99" / "item"
+        opf_path = item / "standard.opf"
+        opf = opf_path.read_text(encoding="utf-8")
+        opf = opf.replace(
+            '<item id="nav" href="navigation-documents.xhtml" media-type="application/xhtml+xml" properties="nav"/>',
+            '<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>',
+        )
+        opf = opf.replace("<spine>", '<spine toc="ncx">')
+        opf_path.write_text(opf, encoding="utf-8")
+        write(item / "toc.ncx", """<?xml version="1.0" encoding="UTF-8"?>
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+  <navMap>
+    <navPoint id="nav-1"><navLabel><text>Second Part</text></navLabel><content src="xhtml/p-second.xhtml#part-second"/></navPoint>
+    <navPoint id="nav-2"><navLabel><text>First Part</text></navLabel><content src="xhtml/p-first.xhtml#part-first"/></navPoint>
+  </navMap>
+</ncx>
+""")
+        extractor = Extractor(99, self.root, self.root / "output")
+        summary = extractor.run(dry_run=True)
+        report = extractor.make_report()
+        self.assertEqual(summary["text_mismatches"], 0)
+        self.assertEqual(summary["broken_links"], 0)
+        self.assertIn("First Part", report)
+        self.assertIn("EPUB2 NCX", report)
+        self.assertIn("toc.ncx", report)
+
     def test_no_overwrite_without_flag(self):
         out = self.root / "output"
         out.mkdir()

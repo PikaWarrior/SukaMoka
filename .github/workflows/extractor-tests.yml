@@ -89,6 +89,50 @@ jobs:
                   out.write("### " + tracked_name + "\n\n")
                   out.write(json.dumps(data, ensure_ascii=False, indent=2) + "\n\n")
                   print("VOLUME4_COMPARE " + json.dumps(data, ensure_ascii=False))
+                  import re
+                  def content_lines(value):
+                      result = []
+                      for line in value.splitlines():
+                          line = line.strip()
+                          if not line or line.startswith("<!--") or line.startswith("Служебное пояснение, не часть книги:"):
+                              continue
+                          def canon_image(m):
+                              page, resource, occ = m.group(1), m.group(2), m.group(3)
+                              return "[[EPUB_IMAGE:xhtml/" + page + ":" + Path(resource).name + ":occ-" + occ + "]]"
+                          line = re.sub(r"\[\[EPUB_IMAGE:v\d+:xhtml/([^:]+):([^:]+):occ-(\d+)\]\]", canon_image, line)
+                          line = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", line)
+                          result.append(line)
+                      return result
+                  old_content_lines = content_lines(old_text)
+                  new_content_lines = content_lines(new_text)
+                  semantic_matcher = difflib.SequenceMatcher(a=old_content_lines, b=new_content_lines, autojunk=False)
+                  old_ruby = re.findall(r"〔([^〕]*)〕", "\n".join(old_content_lines))
+                  new_ruby = re.findall(r"〔([^〕]*)〕", "\n".join(new_content_lines))
+                  old_images = re.findall(r"\[\[EPUB_IMAGE:[^\]]+\]\]", old_text)
+                  new_images = re.findall(r"\[\[EPUB_IMAGE:[^\]]+\]\]", new_text)
+                  def canon_markers(value):
+                      out = []
+                      for marker in re.findall(r"\[\[EPUB_IMAGE:v\d+:xhtml/([^:]+):([^:]+):occ-(\d+)\]\]", value):
+                          page, resource, occ = marker
+                          out.append((page, Path(resource).name, occ))
+                      return out
+                  semantic = {
+                      "nonempty_content_lines_tracked": len(old_content_lines),
+                      "nonempty_content_lines_generated": len(new_content_lines),
+                      "content_line_similarity_ignoring_blank_lines_and_technical_comments": round(semantic_matcher.ratio(), 6),
+                      "ruby_reading_sequences_identical": old_ruby == new_ruby,
+                      "tracked_ruby_readings": len(old_ruby),
+                      "generated_ruby_readings": len(new_ruby),
+                      "image_marker_sequences_identical_after_path_normalization": canon_markers(old_text) == canon_markers(new_text),
+                      "tracked_image_markers": len(old_images),
+                      "generated_image_markers": len(new_images),
+                      "different_content_blocks": len([op for op in semantic_matcher.get_opcodes() if op[0] != "equal"]),
+                      "first_content_differences": [
+                          {"type":tag,"tracked":old_content_lines[i1:i2][:3],"generated":new_content_lines[j1:j2][:3]}
+                          for tag,i1,i2,j1,j2 in semantic_matcher.get_opcodes() if tag != "equal"
+                      ][:10],
+                  }
+                  print("VOLUME4_CONTENT_COMPARE " + json.dumps(semantic, ensure_ascii=False))
                   diff = list(difflib.unified_diff(old_lines, new_lines, fromfile="tracked/" + tracked_name, tofile="lxml/" + tracked_name, n=2))
                   if diff:
                       out.write("First diff excerpt (at most 180 lines):\n\n")

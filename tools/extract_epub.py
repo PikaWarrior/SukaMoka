@@ -103,7 +103,7 @@ def escape_markdown_text(text):
     lines = value.splitlines(keepends=True)
     escaped_lines = []
     for line in lines:
-        match = re.match(r"^([ \t]*)(?:(#{1,6})(?=\s)|([>+\-])(?=\s)|([0-9]+)([.)])(?=\s)|(-{3,}|_{3,}|\*{3,})\s*$)", line)
+        match = re.match(r"^([ \t]*)(?:(#{1,6})(?=\s)|([>+\-])(?=\s)|([0-9]+)([.)])(?=\s)|(-{3,}|_{3,}|={3,}|~{3,}|\*{3,})\s*$)", line)
         if match:
             prefix = match.group(1)
             slash = chr(92)

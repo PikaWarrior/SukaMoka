@@ -53,9 +53,10 @@ class ExtractorIntegrationTests(unittest.TestCase):
 <body><div class="main">
 <p id="part-first" title="First Part">記<ruby>記<rp>(</rp><rt>き</rt><rp>)</rp>憶<rt>おく</rt></ruby>。<span class="em-sesame">強調</span> <img src="../image/diagram.png" alt="glyph|pipe"/>. <a href="#footnote-1">脚注</a><span id="footnote-1">注</span></p>
 <h2 id="heading-break">見出し1<br/>見出し2</h2>
-<p>*literal* _literal_ &lt;tag&gt; &amp; entity</p>
+<p>*literal* _literal_ ~~strike~~ &lt;tag&gt; &amp; entity</p>
 <p># literal heading</p>
 <p>1. literal numbered paragraph</p>
+<p>===</p>
 <p><ruby>外<ruby>内<rt>うち</rt></ruby><rt>そと</rt></ruby></p>
 <p><br/></p>
 <!-- comment text is omitted, but this tail must survive -->COMMENT_TAIL_VISIBLE
@@ -84,7 +85,8 @@ class ExtractorIntegrationTests(unittest.TestCase):
         self.assertIn("[[EPUB_IMAGE:v99:xhtml/p-first.xhtml:diagram.png:occ-01]]", markdown)
         self.assertIn("## 見出し1 見出し2", markdown)
         self.assertIn(r"\*literal\* \_literal\_", markdown)
-        self.assertIn("&lt;tag&gt; &amp; entity", markdown)
+        self.assertIn(r"\~\~strike\~\~ &lt;tag&gt; &amp; entity", markdown)
+        self.assertIn(r"\===", markdown)
         self.assertIn(r"\# literal heading", markdown)
         self.assertIn(r"1\. literal numbered paragraph", markdown)
         self.assertIn("<ruby>外<ruby>内<rt>うち</rt></ruby><rt>そと</rt></ruby>", markdown)

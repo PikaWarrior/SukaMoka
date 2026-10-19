@@ -88,11 +88,15 @@ jobs:
                   }
                   out.write("### " + tracked_name + "\n\n")
                   out.write(json.dumps(data, ensure_ascii=False, indent=2) + "\n\n")
+                  print("VOLUME4_COMPARE " + json.dumps(data, ensure_ascii=False))
                   diff = list(difflib.unified_diff(old_lines, new_lines, fromfile="tracked/" + tracked_name, tofile="lxml/" + tracked_name, n=2))
                   if diff:
                       out.write("First diff excerpt (at most 180 lines):\n\n")
                       out.writelines(diff[:180])
                       out.write("\n\n")
+                      print("VOLUME4_DIFF_BEGIN " + tracked_name)
+                      print("".join(diff[:60]))
+                      print("VOLUME4_DIFF_END " + tracked_name)
           PY
       - name: Upload real-volume smoke-test outputs
         if: always()

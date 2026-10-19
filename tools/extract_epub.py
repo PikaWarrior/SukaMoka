@@ -99,7 +99,7 @@ def markdown_url(url):
 def escape_markdown_text(text):
     """Escape literal source text for Markdown without changing the plain-text audit layer."""
     value = str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-    value = re.sub(r"([\\\x60*_{}\[\]|])", r"\\\1", value)
+    value = re.sub(r"([\\\x60*_{}\[\]|~])", r"\\\1", value)
     lines = value.splitlines(keepends=True)
     escaped_lines = []
     for line in lines:

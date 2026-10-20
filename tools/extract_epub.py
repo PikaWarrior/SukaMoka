@@ -617,7 +617,10 @@ class Extractor:
         elif "font-1em10" in classes:
             result = "### " + result.replace("  \n", " ").replace("\n", " ")
             is_heading = True
-        elif Path(page).stem in {"p-titlepage", "titlepage"} and r["plain"].strip() == self.title:
+        elif Path(page).stem in {"p-titlepage", "titlepage"} and (
+            r["plain"].strip() == self.title
+            or node.xpath("ancestor-or-self::*[contains(concat(' ', normalize-space(@class), ' '), ' book-title-main ')]")
+        ):
             result = "# " + result
             is_heading = True
         if not empty and not is_heading:

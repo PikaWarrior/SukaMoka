@@ -1,0 +1,88 @@
+name: Generate volume 9 source extraction candidate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/extract-volume9.yml"
+      - "tools/extract_epub.py"
+      - "tools/requirements.txt"
+      - "tests/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract-volume9:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tools/requirements.txt
+      - name: Install dependencies
+        run: python -m pip install -r tools/requirements.txt
+      - name: Compile extractor and run regression tests
+        run: |
+          python -m py_compile tools/extract_epub.py tools/split_volume.py
+          python -m unittest discover -s tests -v
+      - name: Generate candidate for volume 9
+        run: |
+          set -e
+          python tools/extract_epub.py --volume 9 --output-dir "$RUNNER_TEMP/volume9-candidate"
+          test -s "$RUNNER_TEMP/volume9-candidate/volume9.md"
+          test -s "$RUNNER_TEMP/volume9-candidate/volume9_report.md"
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import os
+          import re
+
+          root = Path(os.environ["RUNNER_TEMP"]) / "volume9-candidate"
+          source = root / "volume9.md"
+          report = root / "volume9_report.md"
+          text = source.read_text(encoding="utf-8")
+          audit = report.read_text(encoding="utf-8")
+          if not text.startswith("Служебное пояснение, не часть книги:"):
+              raise SystemExit("Missing required ruby/source note at the beginning of volume9.md")
+          if "Журнал пропусков и нерешённых элементов" not in audit:
+              raise SystemExit("Required omission/unresolved-items log is missing from report")
+          summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          with summary.open("a", encoding="utf-8") as out:
+              out.write("\n## Volume 9 extraction candidate\n\n")
+              for path in (source, report):
+                  data = path.read_bytes()
+                  out.write(f"- {path.name} — {len(data):,} bytes; SHA-256 {hashlib.sha256(data).hexdigest()}\n")
+              out.write("\n### Report signals\n\n")
+              patterns = [
+                  r"XHTML parse errors:[^\n]*",
+                  r"Расхождений текстового слоя абзацев:[^\n]*",
+                  r"расхождений порядка ruby-чтений:[^\n]*",
+                  r"ruby warnings:[^\n]*",
+                  r"Журнал пропусков и нерешённых элементов",
+              ]
+              for pattern in patterns:
+                  match = re.search(pattern, audit, re.I)
+                  out.write(f"- `{pattern}`: {match.group(0) if match else 'not found in this exact form; manual review required'}\n")
+          PY
+      - name: Publish candidate on a review branch (do not change main)
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cp "$RUNNER_TEMP/volume9-candidate/volume9.md" completed_volumes/volume9.md
+          cp "$RUNNER_TEMP/volume9-candidate/volume9_report.md" completed_volumes/volume9_report.md
+          git add completed_volumes/volume9.md completed_volumes/volume9_report.md
+          if git diff --cached --quiet; then
+            echo "Generated files match the tracked outputs; nothing to publish." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git commit -m "Generate volume 9 Japanese source extraction candidate"
+          branch="chatgpt/volume9-extraction-$GITHUB_RUN_ID"
+          git push origin "HEAD:refs/heads/$branch"
+          echo "Review branch: $branch" >> "$GITHUB_STEP_SUMMARY"

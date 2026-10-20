@@ -39,14 +39,13 @@ GitHub Actions runs the regression tests and smoke checks for source volumes 4 a
 
 The completed Markdown sources and their extraction reports are stored in `completed_volumes/`. The chunk splitter is `tools/split_volume.py` and uses only the Python standard library.
 
-Run from the repository root:
+The published chunks for volumes 4 and 5 are stored in `Cut_Volumes/Volume4/` and `Cut_Volumes/Volume5/`. Each volume folder contains `variant_A/` and `variant_B/`; each variant contains numbered `chunk_*.md` files and an `_index.md`.
+
+Regenerate both variants locally from the repository root:
 
 ```powershell
-# Generate both chunking variants for volume 4
-python tools/split_volume.py completed_volumes/volume4.md --mode both --out-dir .\tmp\volume4-chunks
-
-# Generate the standard variant for volume 5
-python tools/split_volume.py completed_volumes/volume5.md --mode a --out-dir .\tmp\volume5-chunks
+python tools/split_volume.py completed_volumes/volume4.md --mode both --out-dir Cut_Volumes/Volume4
+python tools/split_volume.py completed_volumes/volume5.md --mode both --out-dir Cut_Volumes/Volume5
 ```
 
-With `--mode both`, the output directory contains `variant_A/` and `variant_B/`, each with numbered `chunk_*.md` files and an `_index.md`. The splitter checks that joining the chunks reconstructs the selected source body exactly. Treat the index as a navigation aid, not as source text. Keep test chunks in a temporary directory rather than alongside the completed source files.
+The splitter checks that joining the chunks reconstructs the selected source body exactly. The repository workflow `.github/workflows/cut-volumes.yml` regenerates and commits these folders whenever the splitter or either source Markdown file changes. Treat each `_index.md` as navigation metadata, not as source text.

@@ -269,37 +269,3 @@
 カバー・口絵・本文イラスト／ue
 
 カバーデザイン／ムシカゴグラフィクス
-
-## 奥付
-
-終〔しゆう〕末〔まつ〕なにしてますか？　もう一〔いち〕度〔ど〕だけ、会〔あ〕えますか？#04
-
-枯〔かれ〕野〔の〕 瑛〔あきら〕
-
-[[EPUB_IMAGE:v4:xhtml/p-colophon.xhtml:logo-sneaker.png:occ-01]]
-
-2017年4月1日　発行
-
-(C)2017 Akira Kareno, ue
-
-本電子書籍は下記にもとづいて制作しました
-
-角川スニーカー文庫『終末なにしてますか？　もう一度だけ、会えますか？#04』
-
-2017年4月1日初版発行
-
-発行者　三坂泰二
-
-発　行　株式会社ＫＡＤＯＫＡＷＡ
-
-〒102-8177　東京都千代田区富士見2-13-3
-
-電話　0570-002-301（カスタマーサポート・ナビダイヤル）
-
-受付時間　9:00～17:00（土日 祝日 年末年始を除く）
-
-http://www.kadokawa.co.jp/
-
-<!-- XHTML head/title is metadata and was not inserted into the book body: xhtml/p-bookwalker.xhtml; title=BOOK☆WALKER. See the head/title audit in the report. -->
-
-[[EPUB_IMAGE:v4:xhtml/p-bookwalker.xhtml:i-bookwalker.jpg:occ-01]]

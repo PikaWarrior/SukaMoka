@@ -9,16 +9,16 @@ from pathlib import Path
 # 1. Универсальный паттерн разделителя сцен для всех томов:
 # Любой одиночный маркер gaiji на отдельной строке, либо символы † / * * *
 SCENE_BREAK_RE = re.compile(
-    r"(?:\n\n[пауза]\n\n)?\n\n"
+    r"(?:\n\n\[пауза\]\n\n)?\n\n"
     r"(?:\[\[EPUB_IMAGE:[^\n]*gaiji[^\n]*\]\]|†|\*\s*\*\s*\*|＊＊＊)"
-    r"(?:\n\n[пауза])?(?=\n\n)"
+    r"(?:\n\n\[пауза\])?(?=\n\n)"
 )
 
 # 2. Паттерн одиночной пустой строки [пауза]
-PAUSE_BREAK_RE = re.compile(r"\n\n[пауза](?=\n\n)")
+PAUSE_BREAK_RE = re.compile(r"\n\n\[пауза\](?=\n\n)")
 
 # 3. Страховочный паттерн обычного абзаца (если на 10 000+ знаков нет ни одной [пауза])
-PARAGRAPH_BREAK_RE = re.compile(r"\n\n(?=(?![пауза])[^\n])")
+PARAGRAPH_BREAK_RE = re.compile(r"\n\n(?=(?!\[пауза\])[^\n])")
 
 
 def strip_wrappers(text: str, keep_colophon: bool = False) -> tuple[str, str]:

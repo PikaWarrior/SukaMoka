@@ -1,4 +1,4 @@
-name: Publish translation chunks for completed volumes 4–8
+name: Publish translation chunks for completed volumes 4–9
 
 on:
   push:
@@ -10,6 +10,7 @@ on:
       - "completed_volumes/volume6.md"
       - "completed_volumes/volume7.md"
       - "completed_volumes/volume8.md"
+      - "completed_volumes/volume9.md"
       - ".github/workflows/cut-volumes.yml"
   workflow_dispatch:
 
@@ -28,10 +29,10 @@ jobs:
           python-version: "3.12"
       - name: Compile splitter
         run: python -m py_compile tools/split_volume.py
-      - name: Generate both variants for volumes 4 through 8
+      - name: Generate both variants for volumes 4 through 9
         run: |
           set -e
-          for volume in 4 5 6 7 8; do
+          for volume in 4 5 6 7 8 9; do
             python tools/split_volume.py "completed_volumes/volume${volume}.md" --mode both --out-dir "Cut_Volumes/Volume${volume}"
           done
       - name: Verify generated outputs and summarize
@@ -46,7 +47,7 @@ jobs:
 
           summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
           lines = ["## Published translation chunks and integrity audit", ""]
-          for volume in (4, 5, 6, 7, 8):
+          for volume in (4, 5, 6, 7, 8, 9):
               source = Path("completed_volumes") / f"volume{volume}.md"
               if not source.is_file():
                   raise SystemExit(f"Missing completed source: {source}")
@@ -82,10 +83,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Cut_Volumes/Volume4 Cut_Volumes/Volume5 Cut_Volumes/Volume6 Cut_Volumes/Volume7 Cut_Volumes/Volume8
+          git add Cut_Volumes/Volume4 Cut_Volumes/Volume5 Cut_Volumes/Volume6 Cut_Volumes/Volume7 Cut_Volumes/Volume8 Cut_Volumes/Volume9
           if git diff --cached --quiet; then
             echo "Generated chunks are already up to date." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          git commit -m "Generate translation chunks for volumes 4 through 8"
+          git commit -m "Generate translation chunks for volumes 4 through 9"
           git push origin HEAD:main

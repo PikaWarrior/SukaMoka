@@ -90,4 +90,7 @@ jobs:
             exit 0
           fi
           git commit -m "Generate translation chunks for volumes 4 through 10"
+          # Rebase generated artifacts onto the current main if another independent commit landed while the job ran.
+          git fetch origin main
+          git rebase origin/main
           git push origin HEAD:main

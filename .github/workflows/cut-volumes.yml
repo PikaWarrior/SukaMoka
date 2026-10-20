@@ -1,4 +1,4 @@
-name: Publish translation chunks for volumes 4 and 5
+name: Publish translation chunks for completed volumes 4–7
 
 on:
   push:
@@ -7,6 +7,8 @@ on:
       - "tools/split_volume.py"
       - "completed_volumes/volume4.md"
       - "completed_volumes/volume5.md"
+      - "completed_volumes/volume6.md"
+      - "completed_volumes/volume7.md"
       - ".github/workflows/cut-volumes.yml"
   workflow_dispatch:
 
@@ -25,21 +27,29 @@ jobs:
           python-version: "3.12"
       - name: Compile splitter
         run: python -m py_compile tools/split_volume.py
-      - name: Generate both variants for volumes 4 and 5
+      - name: Generate both variants for volumes 4 through 7
         run: |
           set -e
-          python tools/split_volume.py completed_volumes/volume4.md --mode both --out-dir Cut_Volumes/Volume4
-          python tools/split_volume.py completed_volumes/volume5.md --mode both --out-dir Cut_Volumes/Volume5
+          for volume in 4 5 6 7; do
+            python tools/split_volume.py "completed_volumes/volume${volume}.md" --mode both --out-dir "Cut_Volumes/Volume${volume}"
+          done
       - name: Verify generated outputs and summarize
         run: |
           python - <<'PY'
           from pathlib import Path
           import os
           import re
+          import sys
+          sys.path.insert(0, ".")
+          from tools import split_volume as splitter
 
           summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
-          lines = ["## Published translation chunks", ""]
-          for volume in (4, 5):
+          lines = ["## Published translation chunks and integrity audit", ""]
+          for volume in (4, 5, 6, 7):
+              source = Path("completed_volumes") / f"volume{volume}.md"
+              if not source.is_file():
+                  raise SystemExit(f"Missing completed source: {source}")
+              _, expected_body = splitter.strip_wrappers(source.read_text(encoding="utf-8"))
               for variant in ("variant_A", "variant_B"):
                   folder = Path("Cut_Volumes") / f"Volume{volume}" / variant
                   chunks = sorted(folder.glob("chunk_*.md"))
@@ -48,12 +58,20 @@ jobs:
                       raise SystemExit(f"Missing chunks or _index.md: {folder}")
                   chunk_texts = [p.read_text(encoding="utf-8").rstrip("\n") for p in chunks]
                   joined_text = "\n\n".join(chunk_texts)
+                  if joined_text != expected_body:
+                      raise SystemExit(
+                          f"Published chunks fail reconstruction for volume {volume}, {variant}: "
+                          f"{len(joined_text)} != {len(expected_body)} chars"
+                      )
                   if re.search(r"(?m)^##[ \t]+奥付[ \t]*$", joined_text):
                       raise SystemExit(f"Terminal colophon was not stripped from published chunks: {folder}")
                   sizes = [len(t) for t in chunk_texts]
+                  clean_sizes = [splitter.pure_jp_len(t) for t in chunk_texts]
                   line = (
                       f"- Volume {volume}, {variant}: {len(chunks)} chunks; "
-                      f"min/max {min(sizes):,}/{max(sizes):,} characters"
+                      f"raw min/max {min(sizes):,}/{max(sizes):,}; "
+                      f"clean min/max {min(clean_sizes):,}/{max(clean_sizes):,}; "
+                      f"reconstruction exact ({len(expected_body):,} chars)"
                   )
                   print(line)
                   lines.append(line)
@@ -63,10 +81,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Cut_Volumes/Volume4 Cut_Volumes/Volume5
+          git add Cut_Volumes/Volume4 Cut_Volumes/Volume5 Cut_Volumes/Volume6 Cut_Volumes/Volume7
           if git diff --cached --quiet; then
             echo "Generated chunks are already up to date." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          git commit -m "Generate translation chunks for volumes 4 and 5"
+          git commit -m "Generate translation chunks for volumes 4 through 7"
           git push origin HEAD:main

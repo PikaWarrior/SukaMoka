@@ -5,6 +5,14 @@ on:
     paths:
       - "tools/**"
       - "tests/**"
+      - "completed_volumes/volume4.md"
+      - "completed_volumes/volume5.md"
+      - "completed_volumes/volume6.md"
+      - "completed_volumes/volume7.md"
+      - "completed_volumes/volume4_report.md"
+      - "completed_volumes/volume5_report.md"
+      - "completed_volumes/volume6_report.md"
+      - "completed_volumes/volume7_report.md"
       - ".github/workflows/extractor-tests.yml"
       - ".github/workflows/cut-volumes.yml"
       - ".github/workflows/extract-review-volumes-4-5.yml"
@@ -15,7 +23,16 @@ on:
     paths:
       - "tools/**"
       - "tests/**"
+      - "completed_volumes/volume4.md"
+      - "completed_volumes/volume5.md"
+      - "completed_volumes/volume6.md"
+      - "completed_volumes/volume7.md"
+      - "completed_volumes/volume4_report.md"
+      - "completed_volumes/volume5_report.md"
+      - "completed_volumes/volume6_report.md"
+      - "completed_volumes/volume7_report.md"
       - ".github/workflows/extractor-tests.yml"
+      - ".github/workflows/cut-volumes.yml"
       - ".github/workflows/extract-review-volumes-4-5.yml"
       - ".github/workflows/extract-volume5.yml"
       - ".github/workflows/extract-volume6.yml"
@@ -40,11 +57,11 @@ jobs:
         run: python -m py_compile tools/extract_epub.py
       - name: Run unit and integration tests
         run: python -m unittest discover -s tests -v
-      - name: Compile splitter and smoke-test chunks for completed volumes 4 and 5
+      - name: Compile splitter and smoke-test chunks for completed volumes 4 through 7
         run: |
           python -m py_compile tools/split_volume.py
           set -e
-          for volume in 4 5; do
+          for volume in 4 5 6 7; do
             source="completed_volumes/volume${volume}.md"
             out="$RUNNER_TEMP/split-volume${volume}"
             python tools/split_volume.py "$source" --mode both --out-dir "$out"
@@ -67,16 +84,14 @@ jobs:
               summary.write("\n".join(lines) + "\n\n")
           PY
           done
-      - name: Smoke-test actual sources for volumes 4 and 5
+      - name: Smoke-test actual sources for completed volumes 4 through 7
         run: |
-          set +e
-          python tools/extract_epub.py --volume 4 --output-dir "$RUNNER_TEMP/volume4-smoke"
-          volume4_status=$?
-          python tools/extract_epub.py --volume 5 --output-dir "$RUNNER_TEMP/volume5-smoke"
-          volume5_status=$?
-          echo "Volume 4 extractor exit: $volume4_status" >> "$GITHUB_STEP_SUMMARY"
-          echo "Volume 5 extractor exit: $volume5_status" >> "$GITHUB_STEP_SUMMARY"
-          if [ "$volume4_status" -ne 0 ] || [ "$volume5_status" -ne 0 ]; then exit 1; fi
+          set -e
+          for volume in 4 5 6 7; do
+            out="$RUNNER_TEMP/volume${volume}-smoke"
+            python tools/extract_epub.py --volume "$volume" --output-dir "$out"
+            echo "- Volume $volume: extraction completed successfully" >> "$GITHUB_STEP_SUMMARY"
+          done
       - name: Compare volume 4 extractor output with tracked source
         run: |
           python - <<'PY'
@@ -178,6 +193,100 @@ jobs:
                       print("".join(diff[:60]))
                       print("VOLUME4_DIFF_END " + tracked_name)
           PY
+      - name: Compare completed volumes 5 through 7 with fresh extraction
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import difflib
+          import hashlib
+          import json
+          import os
+          import re
+
+          summary_path = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          audit_lines = ["", "## Fresh extraction audit: volumes 5–7", ""]
+          problems = []
+          for volume in (5, 6, 7):
+              out_dir = Path(os.environ["RUNNER_TEMP"]) / f"volume{volume}-smoke"
+              for suffix in ("", "_report"):
+                  tracked_name = f"completed_volumes/volume{volume}{suffix}.md"
+                  tracked_path = Path(tracked_name)
+                  generated_path = out_dir / f"volume{volume}{suffix}.md"
+                  if not tracked_path.is_file() or not generated_path.is_file():
+                      raise SystemExit(f"Missing tracked/generated comparison file: {tracked_name}")
+                  old_bytes = tracked_path.read_bytes()
+                  new_bytes = generated_path.read_bytes()
+                  old_text = old_bytes.decode("utf-8")
+                  new_text = new_bytes.decode("utf-8")
+                  old_lines = old_text.splitlines(keepends=True)
+                  new_lines = new_text.splitlines(keepends=True)
+                  matcher = difflib.SequenceMatcher(a=old_lines, b=new_lines, autojunk=False)
+                  data = {
+                      "file": tracked_name,
+                      "identical_bytes": old_bytes == new_bytes,
+                      "tracked_bytes": len(old_bytes),
+                      "fresh_bytes": len(new_bytes),
+                      "tracked_sha256": hashlib.sha256(old_bytes).hexdigest(),
+                      "fresh_sha256": hashlib.sha256(new_bytes).hexdigest(),
+                      "line_similarity_ratio": round(matcher.ratio(), 6),
+                      "changed_line_blocks": sum(op[0] != "equal" for op in matcher.get_opcodes()),
+                  }
+                  audit_lines.append("- " + json.dumps(data, ensure_ascii=False))
+                  print("EXTRACT_COMPARE " + json.dumps(data, ensure_ascii=False))
+                  if suffix == "":
+                      def content_lines(value):
+                          result = []
+                          for line in value.splitlines():
+                              line = line.strip()
+                              if not line or line.startswith("<!--") or line.startswith("Служебное пояснение, не часть книги:"):
+                                  continue
+                              line = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", line)
+                              result.append(line)
+                          return result
+                      old_content = content_lines(old_text)
+                      new_content = content_lines(new_text)
+                      semantic = difflib.SequenceMatcher(a=old_content, b=new_content, autojunk=False)
+                      ruby_old = re.findall(r"〔([^〕]*)〕", "\n".join(old_content))
+                      ruby_new = re.findall(r"〔([^〕]*)〕", "\n".join(new_content))
+                      markers_old = re.findall(r"\[\[EPUB_IMAGE:[^\]]+\]\]", old_text)
+                      markers_new = re.findall(r"\[\[EPUB_IMAGE:[^\]]+\]\]", new_text)
+                      source_audit = {
+                          "volume": volume,
+                          "semantic_content_similarity": round(semantic.ratio(), 6),
+                          "ruby_sequence_identical": ruby_old == ruby_new,
+                          "tracked_ruby_count": len(ruby_old),
+                          "fresh_ruby_count": len(ruby_new),
+                          "image_marker_count_tracked": len(markers_old),
+                          "image_marker_count_fresh": len(markers_new),
+                          "image_marker_sequence_identical": markers_old == markers_new,
+                          "first_content_differences": [
+                              {"type": tag, "tracked": old_content[i1:i2][:2], "fresh": new_content[j1:j2][:2]}
+                              for tag, i1, i2, j1, j2 in semantic.get_opcodes() if tag != "equal"
+                          ][:3],
+                      }
+                      audit_lines.append("  - Source text audit: " + json.dumps(source_audit, ensure_ascii=False))
+                      print("SOURCE_TEXT_AUDIT " + json.dumps(source_audit, ensure_ascii=False))
+                      if source_audit["semantic_content_similarity"] < 0.99:
+                          problems.append(f"Volume {volume} source semantic similarity below 0.99")
+                      if not source_audit["ruby_sequence_identical"]:
+                          problems.append(f"Volume {volume} ruby sequence differs from fresh extraction")
+                      if not source_audit["image_marker_sequence_identical"]:
+                          problems.append(f"Volume {volume} EPUB_IMAGE marker sequence differs from fresh extraction")
+                  else:
+                      required = [
+                          r"XHTML parse errors:\s*0",
+                          r"Расхождений текстового слоя абзацев:\s*0",
+                          r"расхождений порядка ruby-чтений:\s*0",
+                          r"ruby warnings:\s*0",
+                      ]
+                      for pattern in required:
+                          if not re.search(pattern, new_text, flags=re.I):
+                              problems.append(f"{tracked_name}: expected clean report marker missing: {pattern}")
+          with summary_path.open("a", encoding="utf-8") as out:
+              out.write("\n".join(audit_lines) + "\n")
+          if problems:
+              raise SystemExit("Fresh extraction audit failed:\n- " + "\n- ".join(problems))
+          PY
       - name: Upload real-volume smoke-test outputs
         if: always()
         uses: actions/upload-artifact@v4
@@ -186,4 +295,6 @@ jobs:
           path: |
             ${{ runner.temp }}/volume4-smoke/
             ${{ runner.temp }}/volume5-smoke/
+            ${{ runner.temp }}/volume6-smoke/
+            ${{ runner.temp }}/volume7-smoke/
           if-no-files-found: warn

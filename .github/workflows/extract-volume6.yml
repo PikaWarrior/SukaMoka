@@ -56,6 +56,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add completed_volumes/volume6.md completed_volumes/volume6_report.md
+          if git diff --cached --quiet; then
+            echo "Generated files match the tracked outputs; nothing to publish." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           git commit -m "Generate volume 6 Japanese source extraction candidate"
           branch="chatgpt/volume6-extraction-$GITHUB_RUN_ID"
           git push origin "HEAD:refs/heads/$branch"

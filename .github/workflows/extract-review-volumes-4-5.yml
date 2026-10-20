@@ -59,6 +59,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add completed_volumes/volume4.md completed_volumes/volume4_report.md completed_volumes/volume5.md completed_volumes/volume5_report.md
+          if git diff --cached --quiet; then
+            echo "Generated files match the tracked outputs; nothing to publish." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           git commit -m "Regenerate source Markdown and reports for volumes 4 and 5"
           branch="chatgpt/extraction-review-$GITHUB_RUN_ID"
           git push origin "HEAD:refs/heads/$branch"

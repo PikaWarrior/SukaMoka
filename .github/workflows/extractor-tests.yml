@@ -6,11 +6,19 @@ on:
       - "tools/**"
       - "tests/**"
       - ".github/workflows/extractor-tests.yml"
+      - ".github/workflows/extract-review-volumes-4-5.yml"
+      - ".github/workflows/extract-volume5.yml"
+      - ".github/workflows/extract-volume6.yml"
+      - ".github/workflows/extract-volume7.yml"
   pull_request:
     paths:
       - "tools/**"
       - "tests/**"
       - ".github/workflows/extractor-tests.yml"
+      - ".github/workflows/extract-review-volumes-4-5.yml"
+      - ".github/workflows/extract-volume5.yml"
+      - ".github/workflows/extract-volume6.yml"
+      - ".github/workflows/extract-volume7.yml"
   workflow_dispatch:
 
 jobs:

@@ -31,6 +31,33 @@ jobs:
         run: python -m py_compile tools/extract_epub.py
       - name: Run unit and integration tests
         run: python -m unittest discover -s tests -v
+      - name: Compile splitter and smoke-test chunks for completed volumes 4 and 5
+        run: |
+          python -m py_compile tools/split_volume.py
+          set -e
+          for volume in 4 5; do
+            source="completed_volumes/volume${volume}.md"
+            out="$RUNNER_TEMP/split-volume${volume}"
+            python tools/split_volume.py "$source" --mode both --out-dir "$out"
+            python - "$out" "$volume" <<'PY'
+          from pathlib import Path
+          import os, sys
+          out_dir = Path(sys.argv[1])
+          volume = sys.argv[2]
+          lines = [f"## Splitter smoke test: volume {volume}", ""]
+          for variant in ("variant_A", "variant_B"):
+              folder = out_dir / variant
+              chunks = sorted(folder.glob("chunk_*.md"))
+              if not chunks or not (folder / "_index.md").is_file():
+                  raise SystemExit(f"Missing chunks or index: {folder}")
+              sizes = [len(p.read_text(encoding="utf-8").rstrip("\\n")) for p in chunks]
+              line = f"- {variant}: {len(chunks)} chunks; min/max chars {min(sizes):,}/{max(sizes):,}"
+              print(line)
+              lines.append(line)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write("\\n".join(lines) + "\\n\\n")
+          PY
+          done
       - name: Smoke-test actual sources for volumes 4 and 5
         run: |
           set +e
@@ -51,8 +78,8 @@ jobs:
           import os
 
           pairs = [
-              ("volume4.md", Path(os.environ["RUNNER_TEMP"]) / "volume4-smoke" / "volume4.md"),
-              ("volume4_report.md", Path(os.environ["RUNNER_TEMP"]) / "volume4-smoke" / "volume4_report.md"),
+              ("completed_volumes/volume4.md", Path(os.environ["RUNNER_TEMP"]) / "volume4-smoke" / "volume4.md"),
+              ("completed_volumes/volume4_report.md", Path(os.environ["RUNNER_TEMP"]) / "volume4-smoke" / "volume4_report.md"),
           ]
           summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
           with summary.open("a", encoding="utf-8") as out:

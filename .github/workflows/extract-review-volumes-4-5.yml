@@ -37,8 +37,9 @@ jobs:
           for volume in 4 5; do
             out="$RUNNER_TEMP/volume$volume-candidate"
             python tools/extract_epub.py --volume "$volume" --output-dir "$out"
-            cp "$out/volume$volume.md" "./volume$volume.md"
-            cp "$out/volume$volume""_report.md" "./volume$volume""_report.md"
+            mkdir -p completed_volumes
+            cp "$out/volume$volume.md" "./completed_volumes/volume$volume.md"
+            cp "$out/volume$volume""_report.md" "./completed_volumes/volume$volume""_report.md"
           done
           python - <<'PY'
           from pathlib import Path
@@ -48,7 +49,7 @@ jobs:
           summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
           with summary.open("a", encoding="utf-8") as out:
               out.write("\n## Candidate files for volumes 4 and 5\n\n")
-              for name in ("volume4.md", "volume4_report.md", "volume5.md", "volume5_report.md"):
+              for name in ("completed_volumes/volume4.md", "completed_volumes/volume4_report.md", "completed_volumes/volume5.md", "completed_volumes/volume5_report.md"):
                   data = Path(name).read_bytes()
                   out.write(f"- {name} — {len(data):,} bytes; SHA-256 {hashlib.sha256(data).hexdigest()}\n")
           PY
@@ -57,7 +58,7 @@ jobs:
           set -e
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add volume4.md volume4_report.md volume5.md volume5_report.md
+          git add completed_volumes/volume4.md completed_volumes/volume4_report.md completed_volumes/volume5.md completed_volumes/volume5_report.md
           git commit -m "Regenerate source Markdown and reports for volumes 4 and 5"
           branch="chatgpt/extraction-review-$GITHUB_RUN_ID"
           git push origin "HEAD:refs/heads/$branch"

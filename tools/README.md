@@ -33,3 +33,20 @@ The command checks for existing output files before processing and refuses to re
 The script takes the reading order from `standard.opf` spine, uses `lxml` for XML parsing, preserves ruby readings in `base〔reading〕` form, emits unique image markers, checks text and ruby sequences, and writes a detailed omission/resource report. Image contents such as gaiji are not OCRed or visually classified automatically.
 
 GitHub Actions runs the regression tests and smoke checks for source volumes 4 and 5; separate candidate-generation workflows cover volumes 5, 6, and 7. Before publishing another volume, add or update a matching workflow so the exact target volume is covered. A successful extraction is not a substitute for EPUBCheck of the final built EPUB.
+
+
+## Split extracted volumes into translation chunks
+
+The completed Markdown sources and their extraction reports are stored in `completed_volumes/`. The chunk splitter is `tools/split_volume.py` and uses only the Python standard library.
+
+Run from the repository root:
+
+```powershell
+# Generate both chunking variants for volume 4
+python tools/split_volume.py completed_volumes/volume4.md --mode both --out-dir .\tmp\volume4-chunks
+
+# Generate the standard variant for volume 5
+python tools/split_volume.py completed_volumes/volume5.md --mode a --out-dir .\tmp\volume5-chunks
+```
+
+With `--mode both`, the output directory contains `variant_A/` and `variant_B/`, each with numbered `chunk_*.md` files and an `_index.md`. The splitter checks that joining the chunks reconstructs the selected source body exactly. Treat the index as a navigation aid, not as source text. Keep test chunks in a temporary directory rather than alongside the completed source files.

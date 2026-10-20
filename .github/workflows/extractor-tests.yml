@@ -6,6 +6,7 @@ on:
       - "tools/**"
       - "tests/**"
       - ".github/workflows/extractor-tests.yml"
+      - ".github/workflows/cut-volumes.yml"
       - ".github/workflows/extract-review-volumes-4-5.yml"
       - ".github/workflows/extract-volume5.yml"
       - ".github/workflows/extract-volume6.yml"
@@ -58,12 +59,12 @@ jobs:
               chunks = sorted(folder.glob("chunk_*.md"))
               if not chunks or not (folder / "_index.md").is_file():
                   raise SystemExit(f"Missing chunks or index: {folder}")
-              sizes = [len(p.read_text(encoding="utf-8").rstrip("\\n")) for p in chunks]
+              sizes = [len(p.read_text(encoding="utf-8").rstrip("\n")) for p in chunks]
               line = f"- {variant}: {len(chunks)} chunks; min/max chars {min(sizes):,}/{max(sizes):,}"
               print(line)
               lines.append(line)
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
-              summary.write("\\n".join(lines) + "\\n\\n")
+              summary.write("\n".join(lines) + "\n\n")
           PY
           done
       - name: Smoke-test actual sources for volumes 4 and 5

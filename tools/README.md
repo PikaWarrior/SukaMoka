@@ -48,4 +48,8 @@ python tools/split_volume.py completed_volumes/volume4.md --mode both --out-dir 
 python tools/split_volume.py completed_volumes/volume5.md --mode both --out-dir Cut_Volumes/Volume5
 ```
 
-The splitter checks that joining the chunks reconstructs the selected source body exactly. The repository workflow `.github/workflows/cut-volumes.yml` regenerates and commits these folders whenever the splitter or either source Markdown file changes. Treat each `_index.md` as navigation metadata, not as source text.
+The splitter checks that joining the chunks reconstructs the selected source body exactly. By default it removes `## 奥付` only when it is a standalone heading and no later Markdown heading follows; this leaves the epilogue intact and avoids cutting prose that merely mentions the colophon. Use `--keep-colophon` to retain publisher output data. A legacy standalone illustrator-credit line is also recognized when no colophon heading exists.
+
+Each `_index.md` reports both raw Markdown characters and an estimated count after removing ruby annotations (`〔...〕`), editorial annotations (`⟦...⟧`), `EPUB_IMAGE` markers, the literal `[пауза]` marker, and simple `em` tags. This second count is a practical text-size estimate, not a language detector or a count of Japanese characters only.
+
+The v1.2 packing settings (including the +12% soft cap used when merging small chunks) are intentional. The repository workflow `.github/workflows/cut-volumes.yml` regenerates and commits these folders whenever the splitter or either source Markdown file changes, and checks that the terminal colophon heading was not published. Treat each `_index.md` as navigation metadata, not as source text.

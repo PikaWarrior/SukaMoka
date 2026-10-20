@@ -35,6 +35,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import os
+          import re
 
           summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
           lines = ["## Published translation chunks", ""]
@@ -45,7 +46,11 @@ jobs:
                   index = folder / "_index.md"
                   if not chunks or not index.is_file():
                       raise SystemExit(f"Missing chunks or _index.md: {folder}")
-                  sizes = [len(p.read_text(encoding="utf-8").rstrip("\n")) for p in chunks]
+                  chunk_texts = [p.read_text(encoding="utf-8").rstrip("\n") for p in chunks]
+                  joined_text = "\n\n".join(chunk_texts)
+                  if re.search(r"(?m)^##[ \t]+奥付[ \t]*$", joined_text):
+                      raise SystemExit(f"Terminal colophon was not stripped from published chunks: {folder}")
+                  sizes = [len(t) for t in chunk_texts]
                   line = (
                       f"- Volume {volume}, {variant}: {len(chunks)} chunks; "
                       f"min/max {min(sizes):,}/{max(sizes):,} characters"

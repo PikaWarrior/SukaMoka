@@ -35,8 +35,9 @@ jobs:
         run: |
           set -e
           python tools/extract_epub.py --volume 5 --output-dir "$RUNNER_TEMP/volume5-candidate"
-          cp "$RUNNER_TEMP/volume5-candidate/volume5.md" ./volume5.md
-          cp "$RUNNER_TEMP/volume5-candidate/volume5_report.md" ./volume5_report.md
+          mkdir -p completed_volumes
+          cp "$RUNNER_TEMP/volume5-candidate/volume5.md" ./completed_volumes/volume5.md
+          cp "$RUNNER_TEMP/volume5-candidate/volume5_report.md" ./completed_volumes/volume5_report.md
           python - <<'PY'
           from pathlib import Path
           import hashlib
@@ -45,7 +46,7 @@ jobs:
           summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
           with summary.open("a", encoding="utf-8") as out:
               out.write("\n## Volume 5 candidate files\n\n")
-              for name in ("volume5.md", "volume5_report.md"):
+              for name in ("completed_volumes/volume5.md", "completed_volumes/volume5_report.md"):
                   data = Path(name).read_bytes()
                   out.write(f"- {name} — {len(data):,} bytes; SHA-256 {hashlib.sha256(data).hexdigest()}\n")
           PY
@@ -54,7 +55,7 @@ jobs:
           set -e
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add volume5.md volume5_report.md
+          git add completed_volumes/volume5.md completed_volumes/volume5_report.md
           git commit -m "Generate volume 5 Japanese source extraction candidate"
           branch="chatgpt/volume5-extraction-$GITHUB_RUN_ID"
           git push origin "HEAD:refs/heads/$branch"

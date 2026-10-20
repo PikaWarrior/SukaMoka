@@ -171,6 +171,34 @@ class ExtractorIntegrationTests(unittest.TestCase):
         self.assertIn("EPUB2 NCX", report)
         self.assertIn("toc.ncx", report)
 
+    def test_titlepage_main_title_becomes_heading_even_if_opf_metadata_differs(self):
+        item = self.root / "raw" / "99" / "item"
+        opf_path = item / "standard.opf"
+        opf = opf_path.read_text(encoding="utf-8")
+        opf = opf.replace(
+            '<item id="p-first" href="xhtml/p-first.xhtml" media-type="application/xhtml+xml"/>',
+            '<item id="p-first" href="xhtml/p-first.xhtml" media-type="application/xhtml+xml"/>\n'
+            '    <item id="titlepage" href="xhtml/p-titlepage.xhtml" media-type="application/xhtml+xml"/>',
+        )
+        opf = opf.replace(
+            '<itemref idref="p-first"/>',
+            '<itemref idref="p-first"/>\n    <itemref idref="titlepage"/>',
+        )
+        opf_path.write_text(opf, encoding="utf-8")
+        write(item / "xhtml" / "p-titlepage.xhtml", """<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head><title>Test Book</title></head>
+  <body class="p-titlepage"><div class="book-title"><div class="book-title-main"><p>Displayed Title！</p></div><div class="author"><p>Author Name</p></div></div></body>
+</html>
+""")
+        extractor = Extractor(99, self.root, self.root / "output")
+        summary = extractor.run(dry_run=True)
+        markdown = extractor.main_markdown()
+        self.assertEqual(summary["text_mismatches"], 0)
+        self.assertIn("# Displayed Title！", markdown)
+        self.assertIn("Author Name", markdown)
+        self.assertNotIn("# Author Name", markdown)
+
     def test_no_overwrite_without_flag(self):
         out = self.root / "output"
         out.mkdir()

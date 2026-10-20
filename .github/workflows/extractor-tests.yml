@@ -10,11 +10,13 @@ on:
       - "completed_volumes/volume6.md"
       - "completed_volumes/volume7.md"
       - "completed_volumes/volume8.md"
+      - "completed_volumes/volume9.md"
       - "completed_volumes/volume4_report.md"
       - "completed_volumes/volume5_report.md"
       - "completed_volumes/volume6_report.md"
       - "completed_volumes/volume7_report.md"
       - "completed_volumes/volume8_report.md"
+      - "completed_volumes/volume9_report.md"
       - ".github/workflows/extractor-tests.yml"
       - ".github/workflows/cut-volumes.yml"
       - ".github/workflows/extract-review-volumes-4-5.yml"
@@ -22,6 +24,7 @@ on:
       - ".github/workflows/extract-volume6.yml"
       - ".github/workflows/extract-volume7.yml"
       - ".github/workflows/extract-volume8.yml"
+      - ".github/workflows/extract-volume9.yml"
   pull_request:
     paths:
       - "tools/**"
@@ -31,11 +34,13 @@ on:
       - "completed_volumes/volume6.md"
       - "completed_volumes/volume7.md"
       - "completed_volumes/volume8.md"
+      - "completed_volumes/volume9.md"
       - "completed_volumes/volume4_report.md"
       - "completed_volumes/volume5_report.md"
       - "completed_volumes/volume6_report.md"
       - "completed_volumes/volume7_report.md"
       - "completed_volumes/volume8_report.md"
+      - "completed_volumes/volume9_report.md"
       - ".github/workflows/extractor-tests.yml"
       - ".github/workflows/cut-volumes.yml"
       - ".github/workflows/extract-review-volumes-4-5.yml"
@@ -43,6 +48,7 @@ on:
       - ".github/workflows/extract-volume6.yml"
       - ".github/workflows/extract-volume7.yml"
       - ".github/workflows/extract-volume8.yml"
+      - ".github/workflows/extract-volume9.yml"
   workflow_dispatch:
 
 jobs:
@@ -63,11 +69,11 @@ jobs:
         run: python -m py_compile tools/extract_epub.py
       - name: Run unit and integration tests
         run: python -m unittest discover -s tests -v
-      - name: Compile splitter and smoke-test chunks for completed volumes 4 through 8
+      - name: Compile splitter and smoke-test chunks for completed volumes 4 through 9
         run: |
           python -m py_compile tools/split_volume.py
           set -e
-          for volume in 4 5 6 7 8; do
+          for volume in 4 5 6 7 8 9; do
             source="completed_volumes/volume${volume}.md"
             out="$RUNNER_TEMP/split-volume${volume}"
             python tools/split_volume.py "$source" --mode both --out-dir "$out"
@@ -90,10 +96,10 @@ jobs:
               summary.write("\n".join(lines) + "\n\n")
           PY
           done
-      - name: Smoke-test actual sources for completed volumes 4 through 8
+      - name: Smoke-test actual sources for completed volumes 4 through 9
         run: |
           set -e
-          for volume in 4 5 6 7 8; do
+          for volume in 4 5 6 7 8 9; do
             out="$RUNNER_TEMP/volume${volume}-smoke"
             python tools/extract_epub.py --volume "$volume" --output-dir "$out"
             echo "- Volume $volume: extraction completed successfully" >> "$GITHUB_STEP_SUMMARY"
@@ -199,7 +205,7 @@ jobs:
                       print("".join(diff[:60]))
                       print("VOLUME4_DIFF_END " + tracked_name)
           PY
-      - name: Compare completed volumes 5 through 8 with fresh extraction
+      - name: Compare completed volumes 5 through 9 with fresh extraction
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -210,9 +216,9 @@ jobs:
           import re
 
           summary_path = Path(os.environ["GITHUB_STEP_SUMMARY"])
-          audit_lines = ["", "## Fresh extraction audit: volumes 5–8", ""]
+          audit_lines = ["", "## Fresh extraction audit: volumes 5–9", ""]
           problems = []
-          for volume in (5, 6, 7, 8):
+          for volume in (5, 6, 7, 8, 9):
               out_dir = Path(os.environ["RUNNER_TEMP"]) / f"volume{volume}-smoke"
               for suffix in ("", "_report"):
                   tracked_name = f"completed_volumes/volume{volume}{suffix}.md"
@@ -304,4 +310,5 @@ jobs:
             ${{ runner.temp }}/volume6-smoke/
             ${{ runner.temp }}/volume7-smoke/
             ${{ runner.temp }}/volume8-smoke/
+            ${{ runner.temp }}/volume9-smoke/
           if-no-files-found: warn

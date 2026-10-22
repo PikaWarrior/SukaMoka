@@ -34,6 +34,19 @@ jobs:
             --chunk-dir "translated chunks" \
             --report completed_volumes/volume4_report.md \
             --output-dir dist
+      - name: Set up Java for EPUBCheck
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Validate EPUB conformance with official EPUBCheck
+        run: |
+          curl -fsSL https://github.com/w3c/epubcheck/releases/download/v5.4.0/epubcheck-5.4.0.zip -o /tmp/epubcheck.zip
+          mkdir -p /tmp/epubcheck
+          unzip -q /tmp/epubcheck.zip -d /tmp/epubcheck
+          JAR="$(find /tmp/epubcheck -name epubcheck.jar -print -quit)"
+          test -n "$JAR"
+          java -jar "$JAR" dist/SukaMoca_v4_ru_sample.epub
       - name: Upload EPUB and validation summary
         uses: actions/upload-artifact@v4
         with:

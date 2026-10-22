@@ -348,7 +348,7 @@ def build(args: argparse.Namespace) -> dict:
         "citation_tags_removed": 0, "next_fn": 0, "next_ref": 0, "next_scene": 0,
         "next_image": 0, "next_heading": 0, "scene_count": 0,
         "definitions": {}, "refs": {}, "scene_tokens": set(), "image_tokens": {},
-        "images": {}, "image_markers": {},
+        "images": {}, "image_markers": [],
     }
     headings: list[dict] = []
     cleaned_chunks, source_hashes = [], {}

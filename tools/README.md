@@ -59,3 +59,24 @@ The splitter checks that joining the chunks reconstructs the selected source bod
 Each `_index.md` reports both raw Markdown characters and an estimated count after removing ruby annotations (`〔...〕`), editorial annotations (`⟦...⟧`), `EPUB_IMAGE` markers, the literal `[пауза]` marker, and simple `em` tags. This second count is a practical text-size estimate, not a language detector or a count of Japanese characters only.
 
 The v1.2 packing settings (including the +12% soft cap used when merging small chunks) are intentional. The repository workflow `.github/workflows/cut-volumes.yml` regenerates and commits these folders whenever the splitter or any completed source Markdown file for volumes 4–11 changes, and checks that the terminal colophon heading was not published. Treat each `_index.md` as navigation metadata, not as source text.
+
+
+## Build a translated EPUB sample
+
+The first reflowable EPUB builder is `tools/build_epub.py`. It is currently configured and tested for a **partial sample of volume 4**, using the translated chunks in `translated chunks/` and `completed_volumes/volume4_report.md`. Do not treat this sample builder as a general-purpose full-volume builder until its paths and report names are generalized and it is tested with a complete translated volume.
+
+Install its Markdown dependency and run from the repository root:
+
+```powershell
+python -m pip install "Markdown>=3.7,<4"
+python tools/build_epub.py --volume 4 --chunk-dir "translated chunks" --report completed_volumes/volume4_report.md --output-dir dist
+```
+
+Expected files:
+
+- `dist/SukaMoca_v4_ru_sample.epub`
+- `dist/SukaMoca_v4_ru_sample_report.json`
+
+The builder strips chat citation artifacts such as `[cite: 1]`, converts standalone scene-break markers, embeds supported block illustrations, assigns unique EPUB footnote IDs, and fails on unresolved pause/ruby/inline-image markers. It also runs internal checks for ZIP/EPUB structure, XML, manifest/spine references, local links and fragments, and technical markers.
+
+GitHub Actions workflow `.github/workflows/build-epub-sample.yml` builds the same sample, runs official EPUBCheck, and uploads the EPUB and JSON report as the `sukamoca-v4-ru-sample` artifact. Check the latest workflow run and its conclusion before sharing an artifact. Passing EPUBCheck verifies format conformance, not the visual appearance in a reading app; open the EPUB in a reader before making claims about typography and pagination.

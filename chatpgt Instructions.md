@@ -99,7 +99,7 @@ GitHub Actions запускает регрессионные тесты и smoke
 
 ### Текущий набор входных данных
 
-- Переведённые файлы: `translated chunks/chunk_06rus.md` и `translated chunks/chunk_07rus.md`.
+- Переведённые файлы: `translated chunks/volume4/chunk_06rus.md` и `translated chunks/volume4/chunk_07rus.md`.
 - Отчёт исходного тома: `completed_volumes/volume4_report.md`.
 - Изображения: `raw/4/item/image/`.
 - Спецификация сборки: `instructions/build_epub.md`.
@@ -114,7 +114,7 @@ GitHub Actions запускает регрессионные тесты и smoke
 
 ```powershell
 python -m pip install "Markdown>=3.7,<4"
-python tools/build_epub.py --volume 4 --chunk-dir "translated chunks" --report completed_volumes/volume4_report.md --output-dir dist
+python tools/build_epub.py --volume 4 --chunk-dir "translated chunks/volume4" --report completed_volumes/volume4_report.md --output-dir dist
 ```
 
 Ожидаемые выходные файлы:

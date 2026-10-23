@@ -31,7 +31,7 @@ jobs:
         run: |
           python tools/build_epub.py \
             --volume 4 \
-            --chunk-dir "translated chunks" \
+            --chunk-dir "translated chunks/volume4" \
             --report completed_volumes/volume4_report.md \
             --output-dir dist
       - name: Set up Java for EPUBCheck

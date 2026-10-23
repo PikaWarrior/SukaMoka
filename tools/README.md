@@ -63,13 +63,13 @@ The v1.2 packing settings (including the +12% soft cap used when merging small c
 
 ## Build a translated EPUB sample
 
-The first reflowable EPUB builder is `tools/build_epub.py`. It is currently configured and tested for a **partial sample of volume 4**, using the translated chunks in `translated chunks/` and `completed_volumes/volume4_report.md`. Do not treat this sample builder as a general-purpose full-volume builder until its paths and report names are generalized and it is tested with a complete translated volume.
+The first reflowable EPUB builder is `tools/build_epub.py`. It is currently configured and tested for a **partial sample of volume 4**, using the translated chunks in `translated chunks/volume4/` and `completed_volumes/volume4_report.md`. Do not treat this sample builder as a general-purpose full-volume builder until its paths and report names are generalized and it is tested with a complete translated volume.
 
 Install its Markdown dependency and run from the repository root:
 
 ```powershell
 python -m pip install "Markdown>=3.7,<4"
-python tools/build_epub.py --volume 4 --chunk-dir "translated chunks" --report completed_volumes/volume4_report.md --output-dir dist
+python tools/build_epub.py --volume 4 --chunk-dir "translated chunks/volume4" --report completed_volumes/volume4_report.md --output-dir dist
 ```
 
 Expected files:

@@ -77,6 +77,6 @@ Expected files:
 - `dist/SukaMoca_v4_ru_sample.epub`
 - `dist/SukaMoca_v4_ru_sample_report.json`
 
-The builder strips chat citation artifacts such as `[cite: 1]`, converts standalone scene-break markers, embeds supported block illustrations, assigns unique EPUB footnote IDs, and fails on unresolved pause/ruby/inline-image markers. It also runs internal checks for ZIP/EPUB structure, XML, manifest/spine references, local links and fragments, and technical markers.
+The builder intentionally leaves `font-family`, `font-size`, and `line-height` unset on `body`, and leaves fixed `line-height` unset on `h1`/`h2`, so the reading app can apply the user's typography preferences. It keeps `body { margin: 1em; hyphens: none; }` and uses relative heading sizes. It also strips chat citation artifacts such as `[cite: 1]`, converts standalone scene-break markers, embeds supported block illustrations, assigns unique EPUB footnote IDs, and fails on unresolved pause/ruby/inline-image markers. Internal checks cover ZIP/EPUB structure, XML, manifest/spine references, local links and fragments, and technical markers.
 
 GitHub Actions workflow `.github/workflows/build-epub-sample.yml` builds the same sample, runs official EPUBCheck, and uploads the EPUB and JSON report as the `sukamoca-v4-ru-sample` artifact. Check the latest workflow run and its conclusion before sharing an artifact. Passing EPUBCheck verifies format conformance, not the visual appearance in a reading app; open the EPUB in a reader before making claims about typography and pagination.

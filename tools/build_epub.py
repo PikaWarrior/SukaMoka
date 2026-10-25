@@ -388,10 +388,10 @@ def build(args: argparse.Namespace) -> dict:
     ).encode()
     entries["OEBPS/styles/book.css"] = (
         "html { writing-mode: horizontal-tb; }\n"
-        "body { font-family: sans-serif; font-size: 1.125em; line-height: 1.5; margin: 1em; hyphens: none; }\n"
+        "body { margin: 1em; hyphens: none; }\n"
         "p { margin: 0 0 0.7em 0; text-indent: 0; }\n"
-        "h1 { font-size: 1.55em; line-height: 1.25; text-align: center; margin: 2em 0 1em; }\n"
-        "h2 { font-size: 1.3em; line-height: 1.3; font-weight: 700; }\n"
+        "h1 { font-size: 1.55em; text-align: center; margin: 2em 0 1em; }\n"
+        "h2 { font-size: 1.3em; font-weight: 700; }\n"
         "h3 { font-size: 1.15em; font-weight: 700; margin-top: 1.1em; }\n"
         "h1 + p, h2 + p, h3 + p { margin-top: 0.6em; }\n"
         ".scene-break { text-align: center; margin: 1.2em 0; text-indent: 0; }\n"

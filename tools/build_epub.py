@@ -437,7 +437,7 @@ def build(args: argparse.Namespace) -> dict:
             notes_for_part[info["uid"]]["refs"].append(info)
             rendered = rendered.replace(
                 token,
-                f'<a id="{info["ref_id"]}" href="{part_filename}#{info["uid"]}">{info["display"]}</a>',
+                f'<a epub:type="noteref" id="{info["ref_id"]}" href="{part_filename}#{info["uid"]}">{info["display"]}</a>',
             )
 
         if notes_for_part:
@@ -445,7 +445,7 @@ def build(args: argparse.Namespace) -> dict:
             for uid, note_data in notes_for_part.items():
                 note_html = markdown.markdown(note_data["info"]["definition"], extensions=["extra"])
                 backlinks = " ".join(
-                    f'<a href="{part_filename}#{html.escape(info["ref_id"], quote=True)}">↩</a>'
+                    f'<a epub:type="backlink" href="{part_filename}#{html.escape(info["ref_id"], quote=True)}">↩</a>'
                     for info in note_data["refs"]
                 )
                 if "</p>" in note_html:

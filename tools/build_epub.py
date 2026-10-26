@@ -435,36 +435,19 @@ def build(args: argparse.Namespace) -> dict:
             info = state["refs"][token]
             notes_for_part.setdefault(info["uid"], {"info": info, "refs": []})
             notes_for_part[info["uid"]]["refs"].append(info)
-            note_onclick = html.escape(
-                f"event.preventDefault();var n=document.getElementById('{info['uid']}');"
-                "if(n)n.scrollIntoView();return false;",
-                quote=True,
-            )
             rendered = rendered.replace(
                 token,
-                f'<a id="{info["ref_id"]}" href="#{info["uid"]}" '
-                f'onclick="{note_onclick}">{info["display"]}</a>',
+                f'<sup class="footnote-ref">{info["display"]}</sup>',
             )
 
         if notes_for_part:
             note_blocks = []
             for uid, note_data in notes_for_part.items():
                 note_html = markdown.markdown(note_data["info"]["definition"], extensions=["extra"])
-                backlinks = " ".join(
-                    '<a href="#' + html.escape(info["ref_id"], quote=True) + '" '
-                    + 'onclick="' + html.escape(
-                        f"event.preventDefault();var n=document.getElementById('{info['ref_id']}');"
-                        "if(n)n.scrollIntoView();return false;",
-                        quote=True,
-                    ) + '">↩</a>'
-                    for info in note_data["refs"]
-                )
-                if "</p>" in note_html:
-                    note_html = note_html.replace("</p>", f" {backlinks}</p>", 1)
-                else:
-                    note_html += f"<p>{backlinks}</p>"
                 note_blocks.append(
-                    f'<div class="footnote" id="{uid}">{note_html}</div>'
+                    f'<div class="footnote"><p><strong>{note_data["info"]["display"]}.</strong></p>'
+                    + note_html
+                    + '</div>'
                 )
             rendered += (
                 '<section class="footnotes">'
@@ -505,7 +488,7 @@ def build(args: argparse.Namespace) -> dict:
         ('titlepage', 'text/titlepage.xhtml', 'application/xhtml+xml', None),
     ]
     manifest += [
-        (f"part{i:03d}", part["path"].replace("OEBPS/", ""), "application/xhtml+xml", "scripted" if b"onclick=" in entries[part["path"]] else None)
+        (f"part{i:03d}", part["path"].replace("OEBPS/", ""), "application/xhtml+xml", None)
         for i, part in enumerate(parts, 1)
     ]
     for i, resource in enumerate(sorted(state["images"]), 1):

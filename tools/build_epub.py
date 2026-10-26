@@ -435,9 +435,15 @@ def build(args: argparse.Namespace) -> dict:
             info = state["refs"][token]
             notes_for_part.setdefault(info["uid"], {"info": info, "refs": []})
             notes_for_part[info["uid"]]["refs"].append(info)
+            note_onclick = html.escape(
+                f"event.preventDefault();var n=document.getElementById('{info['uid']}');"
+                "if(n)n.scrollIntoView();return false;",
+                quote=True,
+            )
             rendered = rendered.replace(
                 token,
-                f'<a id="{info["ref_id"]}" href="#{info["uid"]}">{info["display"]}</a>',
+                f'<a id="{info["ref_id"]}" href="#{info["uid"]}" '
+                f'onclick="{note_onclick}">{info["display"]}</a>',
             )
 
         if notes_for_part:
@@ -445,7 +451,12 @@ def build(args: argparse.Namespace) -> dict:
             for uid, note_data in notes_for_part.items():
                 note_html = markdown.markdown(note_data["info"]["definition"], extensions=["extra"])
                 backlinks = " ".join(
-                    f'<a href="#{html.escape(info["ref_id"], quote=True)}">↩</a>'
+                    '<a href="#' + html.escape(info["ref_id"], quote=True) + '" '
+                    + 'onclick="' + html.escape(
+                        f"event.preventDefault();var n=document.getElementById('{info['ref_id']}');"
+                        "if(n)n.scrollIntoView();return false;",
+                        quote=True,
+                    ) + '">↩</a>'
                     for info in note_data["refs"]
                 )
                 if "</p>" in note_html:

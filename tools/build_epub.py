@@ -505,7 +505,7 @@ def build(args: argparse.Namespace) -> dict:
         ('titlepage', 'text/titlepage.xhtml', 'application/xhtml+xml', None),
     ]
     manifest += [
-        (f"part{i:03d}", part["path"].replace("OEBPS/", ""), "application/xhtml+xml", None)
+        (f"part{i:03d}", part["path"].replace("OEBPS/", ""), "application/xhtml+xml", "scripted")
         for i, part in enumerate(parts, 1)
     ]
     for i, resource in enumerate(sorted(state["images"]), 1):

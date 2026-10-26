@@ -61,9 +61,9 @@ Each `_index.md` reports both raw Markdown characters and an estimated count aft
 The v1.2 packing settings (including the +12% soft cap used when merging small chunks) are intentional. The repository workflow `.github/workflows/cut-volumes.yml` regenerates and commits these folders whenever the splitter or any completed source Markdown file for volumes 4–11 changes, and checks that the terminal colophon heading was not published. Treat each `_index.md` as navigation metadata, not as source text.
 
 
-## Build a translated EPUB sample
+## Build the translated EPUB for volume 4
 
-The first reflowable EPUB builder is `tools/build_epub.py`. It is currently configured and tested for a **partial sample of volume 4**, using the translated chunks in `translated chunks/volume4/` and `completed_volumes/volume4_report.md`. Do not treat this sample builder as a general-purpose full-volume builder until its paths and report names are generalized and it is tested with a complete translated volume.
+The current builder `tools/build_epub.py` assembles every translated `chunk_*rus.md` file found in `translated chunks/volume4/` in numeric order. The current repository contains chunks 01–08, including the afterword. It is validated against volume 4; do not use it for other volumes without updating the paths and checking the result.
 
 Install its Markdown dependency and run from the repository root:
 
@@ -74,9 +74,9 @@ python tools/build_epub.py --volume 4 --chunk-dir "translated chunks/volume4" --
 
 Expected files:
 
-- `dist/SukaMoca_v4_ru_sample.epub`
-- `dist/SukaMoca_v4_ru_sample_report.json`
+- `dist/SukaMoca_v4_ru.epub`
+- `dist/SukaMoca_v4_ru_report.json`
 
-The builder intentionally leaves `font-family`, `font-size`, and `line-height` unset on `body`, and leaves fixed `line-height` unset on `h1`/`h2`, so the reading app can apply the user's typography preferences. It keeps `body { margin: 1em; hyphens: none; }` and uses relative heading sizes. It also strips chat citation artifacts such as `[cite: 1]`, converts standalone scene-break markers, embeds supported block illustrations, assigns unique EPUB footnote IDs, and fails on unresolved pause/ruby/inline-image markers. Internal checks cover ZIP/EPUB structure, XML, manifest/spine references, local links and fragments, and technical markers.
+The builder leaves `font-family`, `font-size`, and `line-height` unset on `body`, so the reader can apply the user’s typography preferences. Footnotes live in a dedicated `text/notes.xhtml` document with EPUB 3 semantics and bidirectional links. This provides a visible fallback destination when a reading app does not implement footnote pop-ups. Internal checks validate note references and targets as well as ZIP/EPUB structure, XML, manifest/spine references, local links, images, and technical markers.
 
-GitHub Actions workflow `.github/workflows/build-epub-sample.yml` builds the same sample, runs official EPUBCheck, and uploads the EPUB and JSON report as the `sukamoca-v4-ru-sample` artifact. Check the latest workflow run and its conclusion before sharing an artifact. Passing EPUBCheck verifies format conformance, not the visual appearance in a reading app; open the EPUB in a reader before making claims about typography and pagination.
+The workflow file is still named `.github/workflows/build-epub-sample.yml` for historical reasons; its current run builds the translated volume 4, validates it with official EPUBCheck, and uploads `SukaMoca_v4_ru.epub` plus the JSON report as the `sukamoca-v4-ru` artifact. Passing EPUBCheck verifies format conformance, not visual appearance in a reading app.

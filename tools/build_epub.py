@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a reflowable EPUB 3 sample from translated Markdown chunks."""
+"""Build a reflowable EPUB 3 from translated Markdown chunks."""
 from __future__ import annotations
 
 import argparse
@@ -371,7 +371,7 @@ def build(args: argparse.Namespace) -> dict:
         h2 = next((h for h in headings if h["id"] in heading_ids and h["level"] == 2), None)
         parts.append({
             "path": "OEBPS/" + filename,
-            "title": h2["title"] if h2 else f"Продолжение — том {args.volume} (пробный фрагмент)",
+            "title": h2["title"] if h2 else f"Продолжение — том {args.volume}",
             "text": section,
         })
     for h in headings:
@@ -403,18 +403,16 @@ def build(args: argparse.Namespace) -> dict:
         ".level-3 { margin-left: 1.2em; }\n"
         ".title-page { text-align: center; margin-top: 20%; }\n"
         ".title-page .subtitle { font-size: 1.2em; }\n"
-        ".title-page .scope-note { font-size: 0.9em; margin-top: 2em; }\n"
     ).encode()
 
     chunk_label = ", ".join(p.stem.replace("rus", "") for p in chunks)
     titlepage_body = (
         '<main class="title-page"><h1>SukaSuka / SukaMoca</h1>'
-        f'<p class="subtitle">Том {args.volume} — пробный фрагмент</p>'
-        f'<p>Переведённые чанки: {html.escape(chunk_label)}</p>'
-        '<p class="scope-note">Это не полный том. Включены только переведённые фрагменты из доступных чанков.</p></main>'
+        f'<p class="subtitle">Том {args.volume}</p>'
+        '<p>Русский перевод</p></main>'
     )
     entries["OEBPS/text/titlepage.xhtml"] = xhtml_doc(
-        f"SukaMoca — Том {args.volume} (пробный фрагмент)", titlepage_body
+        f"SukaMoca — Том {args.volume}", titlepage_body
     )
 
     for part in parts:
@@ -532,7 +530,7 @@ def build(args: argparse.Namespace) -> dict:
         'xml:lang="ru" prefix="dcterms: http://purl.org/dc/terms/">'
         '<metadata>'
         f'<dc:identifier id="pub-id">{identifier}</dc:identifier>'
-        f'<dc:title>SukaSuka / SukaMoca — Том {args.volume} (пробный фрагмент)</dc:title>'
+        f'<dc:title>SukaSuka / SukaMoca — Том {args.volume}</dc:title>'
         '<dc:language>ru</dc:language><dc:creator>枯野 瑛</dc:creator>'
         f'<meta property="dcterms:modified">{modified}</meta>'
         '</metadata><manifest>' + manifest_xml + '</manifest><spine>' + spine_xml + '</spine></package>'
@@ -542,7 +540,7 @@ def build(args: argparse.Namespace) -> dict:
 
     output_dir = Path(args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    epub_path = output_dir / f"SukaMoca_v{args.volume}_ru_sample.epub"
+    epub_path = output_dir / f"SukaMoca_v{args.volume}_ru.epub"
     with zipfile.ZipFile(epub_path, "w") as zf:
         zf.writestr("mimetype", MIMETYPE, compress_type=zipfile.ZIP_STORED)
         for name in sorted(entries):
@@ -555,8 +553,8 @@ def build(args: argparse.Namespace) -> dict:
         "image_count": len(state["images"]),
     })
     result = {
-        "title": f"SukaSuka / SukaMoca — том {args.volume}, пробный фрагмент",
-        "scope": "partial_sample_not_full_volume",
+        "title": f"SukaSuka / SukaMoca — том {args.volume}",
+        "scope": "all_translated_chunks_in_input_directory",
         "input_chunks": [p.name for p in chunks],
         "input_sha256": source_hashes,
         "chat_citation_tags_removed": state["citation_tags_removed"],
@@ -568,10 +566,10 @@ def build(args: argparse.Namespace) -> dict:
             for info in state["definitions"].values()
         ],
         "headings": headings,
-        "note": "Only translated chunks present in the input folder are included; missing chapters are not fabricated.",
+        "note": "Includes every matching translated chunk found in the input directory, in numeric order. Verify that the directory contains the complete intended volume before distribution.",
         **check,
     }
-    (output_dir / "SukaMoca_v4_ru_sample_report.json").write_text(
+    (output_dir / f"SukaMoca_v{args.volume}_ru_report.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -708,7 +706,7 @@ def validate_epub(path: Path, expected: dict) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build and validate a reflowable EPUB 3 sample.")
+    parser = argparse.ArgumentParser(description="Build and validate a reflowable EPUB 3 from translated chunks.")
     parser.add_argument("--volume", type=int, default=4)
     parser.add_argument("--chunk-dir", default="translated chunks")
     parser.add_argument("--report", default="completed_volumes/volume4_report.md")

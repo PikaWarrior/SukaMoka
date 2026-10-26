@@ -52,7 +52,7 @@ jobs:
         with:
           name: sukamoca-v4-ru
           path: |
-            dist/SukaMoca_v4_ru_sample.epub
+            dist/SukaMoca_v4_ru.epub
             dist/SukaMoca_v4_ru_report.json
           if-no-files-found: error
           retention-days: 14

@@ -428,7 +428,8 @@ def build(args: argparse.Namespace) -> dict:
                     + '" alt="Иллюстрация из оригинального издания" /></figure>',
                 )
 
-        local_refs = [token for token, info in state["refs"].items() if info.get("source_chunk") == Path(part["path"]).name or token in section]
+        part_filename = Path(part["path"]).name
+        local_refs = [token for token in state["refs"] if token in section]
         notes_for_part = {}
         for token in local_refs:
             info = state["refs"][token]
@@ -436,8 +437,7 @@ def build(args: argparse.Namespace) -> dict:
             notes_for_part[info["uid"]]["refs"].append(info)
             rendered = rendered.replace(
                 token,
-                f'<a epub:type="noteref" role="doc-noteref" id="{info["ref_id"]}" '
-                f'href="#{info["uid"]}">{info["display"]}</a>',
+                f'<a id="{info["ref_id"]}" href="{part_filename}#{info["uid"]}">{info["display"]}</a>',
             )
 
         if notes_for_part:
@@ -445,8 +445,7 @@ def build(args: argparse.Namespace) -> dict:
             for uid, note_data in notes_for_part.items():
                 note_html = markdown.markdown(note_data["info"]["definition"], extensions=["extra"])
                 backlinks = " ".join(
-                    f'<a epub:type="backlink" role="doc-backlink" '
-                    f'href="#{html.escape(info["ref_id"], quote=True)}">↩</a>'
+                    f'<a href="{part_filename}#{html.escape(info["ref_id"], quote=True)}">↩</a>'
                     for info in note_data["refs"]
                 )
                 if "</p>" in note_html:

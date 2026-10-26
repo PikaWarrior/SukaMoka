@@ -405,7 +405,6 @@ def build(args: argparse.Namespace) -> dict:
         ".title-page .subtitle { font-size: 1.2em; }\n"
     ).encode()
 
-    chunk_label = ", ".join(p.stem.replace("rus", "") for p in chunks)
     titlepage_body = (
         '<main class="title-page"><h1>SukaSuka / SukaMoca</h1>'
         f'<p class="subtitle">Том {args.volume}</p>'

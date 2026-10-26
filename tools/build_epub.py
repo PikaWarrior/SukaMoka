@@ -287,7 +287,7 @@ def validate_epub(path: Path, expected: dict) -> dict:
                 continue
             visible.append("".join(root.itertext()))
             scene_count += len(root.findall(f".//{{{XHTML}}}p[@class='scene-break']"))
-            fn_count += sum(1 for node in root.iter() if node.attrib.get(f"{{{EPUB}}}type") == "footnote")
+            fn_count += sum(1 for node in root.iter() if node.attrib.get("class") == "footnote")
             image_count += len(root.findall(f".//{{{XHTML}}}img"))
             for main in root.findall(f".//{{{XHTML}}}main"):
                 previous_break = False
@@ -437,7 +437,7 @@ def build(args: argparse.Namespace) -> dict:
             notes_for_part[info["uid"]]["refs"].append(info)
             rendered = rendered.replace(
                 token,
-                f'<a epub:type="noteref" id="{info["ref_id"]}" href="{part_filename}#{info["uid"]}">{info["display"]}</a>',
+                f'<a id="{info["ref_id"]}" href="#{info["uid"]}">{info["display"]}</a>',
             )
 
         if notes_for_part:
@@ -445,7 +445,7 @@ def build(args: argparse.Namespace) -> dict:
             for uid, note_data in notes_for_part.items():
                 note_html = markdown.markdown(note_data["info"]["definition"], extensions=["extra"])
                 backlinks = " ".join(
-                    f'<a epub:type="backlink" href="{part_filename}#{html.escape(info["ref_id"], quote=True)}">↩</a>'
+                    f'<a href="#{html.escape(info["ref_id"], quote=True)}">↩</a>'
                     for info in note_data["refs"]
                 )
                 if "</p>" in note_html:
@@ -453,10 +453,10 @@ def build(args: argparse.Namespace) -> dict:
                 else:
                     note_html += f"<p>{backlinks}</p>"
                 note_blocks.append(
-                    f'<div epub:type="footnote" role="doc-footnote" id="{uid}">{note_html}</div>'
+                    f'<div class="footnote" id="{uid}">{note_html}</div>'
                 )
             rendered += (
-                '<section class="footnotes" epub:type="endnotes" role="doc-endnotes">'
+                '<section class="footnotes">'
                 '<h2>Примечания</h2>' + "".join(note_blocks) + '</section>'
             )
 
@@ -631,9 +631,9 @@ def validate_epub(path: Path, expected: dict) -> dict:
             if not name.endswith(".xhtml"):
                 continue
             for node in root.iter():
-                if node.attrib.get(f"{{{EPUB}}}type") != "noteref":
-                    continue
                 href = node.attrib.get("href", "")
+                if not (node.attrib.get("id", "").startswith("ref-") and href.startswith("#fn-")):
+                    continue
                 parsed = urlsplit(href)
                 target = name
                 if parsed.path:

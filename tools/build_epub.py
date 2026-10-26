@@ -432,33 +432,46 @@ def build(args: argparse.Namespace) -> dict:
                 )
 
         local_refs = [token for token in state["refs"] if token in section]
-        local_fn_uids = list(dict.fromkeys(state["refs"][t]["uid"] for t in local_refs))
-        asides = []
-        for uid in local_fn_uids:
-            fn = state["definitions"][uid]
+        for token in local_refs:
+            info = state["refs"][token]
+            # Notes live in a separate XHTML document. This gives readers a real,
+            # visible destination even when they do not implement popup footnotes.
+            info["source_href"] = f'{Path(part["path"]).name}#{info["ref_id"]}'
+            rendered = rendered.replace(
+                token,
+                f'<a epub:type="noteref" role="doc-noteref" id="{info["ref_id"]}" '
+                f'href="notes.xhtml#{info["uid"]}">{info["display"]}</a>',
+            )
+
+        if any(t in rendered for t in state["scene_tokens"] | set(state["image_tokens"]) | set(state["refs"])):
+            raise ValueError(f"Unresolved placeholder remains in {part['path']}.")
+        entries[part["path"]] = xhtml_doc(part["title"], rendered)
+
+    if state["definitions"]:
+        note_asides = []
+        for uid, fn in state["definitions"].items():
             note_html = markdown.markdown(fn["definition"], extensions=["extra"])
+            references = [
+                info for info in state["refs"].values()
+                if info["uid"] == uid and "source_href" in info
+            ]
             backlinks = " ".join(
-                f'<a epub:type="backlink" href="#{state["refs"][t]["ref_id"]}">↩</a>'
-                for t in local_refs if state["refs"][t]["uid"] == uid
+                f'<a epub:type="backlink" role="doc-backlink" '
+                f'href="{html.escape(info["source_href"], quote=True)}">↩</a>'
+                for info in references
             )
             if "</p>" in note_html:
                 note_html = note_html.replace("</p>", f" {backlinks}</p>", 1)
             else:
                 note_html += f"<p>{backlinks}</p>"
-            asides.append(f'<aside epub:type="footnote" id="{uid}">{note_html}</aside>')
-
-        for token in local_refs:
-            info = state["refs"][token]
-            rendered = rendered.replace(
-                token,
-                f'<a epub:type="noteref" id="{info["ref_id"]}" href="#{info["uid"]}">{info["display"]}</a>',
+            note_asides.append(
+                f'<aside epub:type="footnote" role="doc-footnote" id="{uid}">{note_html}</aside>'
             )
-        if asides:
-            rendered += '<section class="footnotes" epub:type="endnotes"><h2>Примечания</h2>' + "".join(asides) + "</section>"
-
-        if any(t in rendered for t in state["scene_tokens"] | set(state["image_tokens"]) | set(state["refs"])):
-            raise ValueError(f"Unresolved placeholder remains in {part['path']}.")
-        entries[part["path"]] = xhtml_doc(part["title"], rendered)
+        notes_body = (
+            '<main><section class="footnotes" epub:type="endnotes" role="doc-endnotes">'
+            '<h1>Примечания</h1>' + "".join(note_asides) + '</section></main>'
+        )
+        entries["OEBPS/text/notes.xhtml"] = xhtml_doc("Примечания", notes_body)
 
     for resource, source_path in state["images"].items():
         entries[f"OEBPS/images/{resource}"] = source_path.read_bytes()
@@ -470,6 +483,8 @@ def build(args: argparse.Namespace) -> dict:
             f'<li class="{level_class}"><a href="{html.escape(h["href"], quote=True)}">'
             f'{html.escape(h["title"])}</a></li>'
         )
+    if state["definitions"]:
+        toc_items.append('<li><a href="text/notes.xhtml">Примечания</a></li>')
     nav = (
         '<?xml version="1.0" encoding="utf-8"?>'
         f'<html xmlns="{XHTML}" xmlns:epub="{EPUB}" lang="ru" xml:lang="ru">'
@@ -493,6 +508,8 @@ def build(args: argparse.Namespace) -> dict:
         (f"part{i:03d}", part["path"].replace("OEBPS/", ""), "application/xhtml+xml", None)
         for i, part in enumerate(parts, 1)
     ]
+    if state["definitions"]:
+        manifest.append(("notes", "text/notes.xhtml", "application/xhtml+xml", None))
     for i, resource in enumerate(sorted(state["images"]), 1):
         ext = Path(resource).suffix.lower()
         media = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}.get(ext)
@@ -504,8 +521,10 @@ def build(args: argparse.Namespace) -> dict:
         + (f' properties="{props}"' if props else "") + " />"
         for ident, href, media, props in manifest
     )
-    spine_xml = '<itemref idref="titlepage" />' + "".join(
-        f'<itemref idref="part{i:03d}" />' for i in range(1, len(parts) + 1)
+    spine_xml = (
+        '<itemref idref="titlepage" />'
+        + "".join(f'<itemref idref="part{i:03d}" />' for i in range(1, len(parts) + 1))
+        + ('<itemref idref="notes" />' if state["definitions"] else "")
     )
     opf = (
         '<?xml version="1.0" encoding="utf-8"?>'

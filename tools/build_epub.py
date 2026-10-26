@@ -653,7 +653,7 @@ def validate_epub(path: Path, expected: dict) -> dict:
                 continue
             visible.append("".join(root.itertext()))
             scenes += len(root.findall(f".//{{{XHTML}}}p[@class='scene-break']"))
-            footnotes += sum(1 for node in root.iter() if node.attrib.get(f"{{{EPUB}}}type") == "footnote")
+            footnotes += sum(1 for node in root.iter() if node.attrib.get("class") == "footnote")
             images += len(root.findall(f".//{{{XHTML}}}img"))
             for body in root.findall(f".//{{{XHTML}}}body"):
                 prev = False

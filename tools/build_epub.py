@@ -398,7 +398,7 @@ def build(args: argparse.Namespace) -> dict:
         "figure.illustration { margin: 1em 0; padding: 0; text-align: center; page-break-inside: avoid; }\n"
         "figure.illustration img { max-width: 100%; height: auto; display: block; margin: 0 auto; }\n"
         ".footnotes { margin-top: 2em; border-top: 1px solid currentColor; padding-top: 0.8em; }\n"
-        ".footnotes aside { font-size: 0.9em; margin: 0.8em 0; }\n"
+        ".footnotes [role=\"doc-footnote\"] { display: block; font-size: 0.9em; margin: 0.8em 0; }\n"
         ".footnotes a { text-decoration: none; }\n"
         ".level-3 { margin-left: 1.2em; }\n"
         ".title-page { text-align: center; margin-top: 20%; }\n"
@@ -462,7 +462,7 @@ def build(args: argparse.Namespace) -> dict:
             else:
                 note_html += f"<p>{backlinks}</p>"
             note_asides.append(
-                f'<aside epub:type="footnote" role="doc-footnote" id="{uid}">{note_html}</aside>'
+                f'<div epub:type="footnote" role="doc-footnote" id="{uid}">{note_html}</div>'
             )
         notes_body = (
             '<main><section class="footnotes" epub:type="endnotes" role="doc-endnotes">'

@@ -287,7 +287,7 @@ def validate_epub(path: Path, expected: dict) -> dict:
                 continue
             visible.append("".join(root.itertext()))
             scene_count += len(root.findall(f".//{{{XHTML}}}p[@class='scene-break']"))
-            fn_count += len(root.findall(f".//{{{XHTML}}}div[@{{{EPUB}}}type='footnote']"))
+            fn_count += sum(1 for node in root.iter() if node.attrib.get(f"{{{EPUB}}}type") == "footnote")
             image_count += len(root.findall(f".//{{{XHTML}}}img"))
             for main in root.findall(f".//{{{XHTML}}}main"):
                 previous_break = False
@@ -428,7 +428,7 @@ def build(args: argparse.Namespace) -> dict:
                     + '" alt="Иллюстрация из оригинального издания" /></figure>',
                 )
 
-        local_refs = [token for token in state["refs"] if token in section]
+        local_refs = [token for token, info in state["refs"].items() if info.get("source_chunk") == Path(part["path"]).name or token in section]
         notes_for_part = {}
         for token in local_refs:
             info = state["refs"][token]
@@ -475,7 +475,6 @@ def build(args: argparse.Namespace) -> dict:
             f'<li class="{level_class}"><a href="{html.escape(h["href"], quote=True)}">'
             f'{html.escape(h["title"])}</a></li>'
         )
-    if state["definitions"]:
     nav = (
         '<?xml version="1.0" encoding="utf-8"?>'
         f'<html xmlns="{XHTML}" xmlns:epub="{EPUB}" lang="ru" xml:lang="ru">'
@@ -499,7 +498,6 @@ def build(args: argparse.Namespace) -> dict:
         (f"part{i:03d}", part["path"].replace("OEBPS/", ""), "application/xhtml+xml", None)
         for i, part in enumerate(parts, 1)
     ]
-    if state["definitions"]:
     for i, resource in enumerate(sorted(state["images"]), 1):
         ext = Path(resource).suffix.lower()
         media = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}.get(ext)
@@ -656,7 +654,7 @@ def validate_epub(path: Path, expected: dict) -> dict:
                 continue
             visible.append("".join(root.itertext()))
             scenes += len(root.findall(f".//{{{XHTML}}}p[@class='scene-break']"))
-            footnotes += len(root.findall(f".//{{{XHTML}}}div[@{{{EPUB}}}type='footnote']"))
+            footnotes += sum(1 for node in root.iter() if node.attrib.get(f"{{{EPUB}}}type") == "footnote")
             images += len(root.findall(f".//{{{XHTML}}}img"))
             for body in root.findall(f".//{{{XHTML}}}body"):
                 prev = False

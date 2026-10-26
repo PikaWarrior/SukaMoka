@@ -624,7 +624,7 @@ def validate_epub(path: Path, expected: dict) -> dict:
             (name, node.attrib["id"])
             for name, root in roots.items()
             for node in root.iter()
-            if node.attrib.get("id") and node.attrib.get(f"{{{EPUB}}}type") == "footnote"
+            if node.attrib.get("id") and node.attrib.get("class") == "footnote"
         }
         noteref_count = 0
         for name, root in roots.items():

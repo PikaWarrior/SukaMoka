@@ -1,4 +1,4 @@
-name: Build translated EPUB sample
+name: Build translated EPUB — volume 4
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  build-sample:
+  build-volume4:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -27,7 +27,7 @@ jobs:
         run: python -m pip install "Markdown>=3.7,<4"
       - name: Check builder syntax
         run: python -m py_compile tools/build_epub.py
-      - name: Build and validate the sample EPUB
+      - name: Build and validate translated volume 4
         run: |
           python tools/build_epub.py \
             --volume 4 \
@@ -46,13 +46,13 @@ jobs:
           unzip -q /tmp/epubcheck.zip -d /tmp/epubcheck
           JAR="$(find /tmp/epubcheck -name epubcheck.jar -print -quit)"
           test -n "$JAR"
-          java -jar "$JAR" dist/SukaMoca_v4_ru_sample.epub
+          java -jar "$JAR" dist/SukaMoca_v4_ru.epub
       - name: Upload EPUB and validation summary
         uses: actions/upload-artifact@v4
         with:
-          name: sukamoca-v4-ru-sample
+          name: sukamoca-v4-ru
           path: |
             dist/SukaMoca_v4_ru_sample.epub
-            dist/SukaMoca_v4_ru_sample_report.json
+            dist/SukaMoca_v4_ru_report.json
           if-no-files-found: error
           retention-days: 14

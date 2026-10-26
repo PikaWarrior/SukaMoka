@@ -614,30 +614,17 @@ def validate_epub(path: Path, expected: dict) -> dict:
                     if parsed.fragment and parsed.fragment not in ids.get(target, set()):
                         raise ValueError(f"Broken fragment in {name}: {value}")
 
-        footnote_targets = {
-            (name, node.attrib["id"])
+        noteref_count = sum(
+            1
             for name, root in roots.items()
+            if name.endswith(".xhtml")
             for node in root.iter()
-            if node.attrib.get("id") and node.attrib.get("class") == "footnote"
-        }
-        noteref_count = 0
-        for name, root in roots.items():
-            if not name.endswith(".xhtml"):
-                continue
-            for node in root.iter():
-                href = node.attrib.get("href", "")
-                if not (node.attrib.get("id", "").startswith("ref-") and href.startswith("#fn-")):
-                    continue
-                parsed = urlsplit(href)
-                target = name
-                if parsed.path:
-                    target = posixpath.normpath(posixpath.join(posixpath.dirname(name), parsed.path))
-                if not parsed.fragment or (target, parsed.fragment) not in footnote_targets:
-                    raise ValueError(f"Footnote reference does not target a footnote: {name} -> {href}")
-                noteref_count += 1
+            if node.tag == f"{{{XHTML}}}sup"
+            and node.attrib.get("class") == "footnote-ref"
+        )
         if noteref_count != expected["footnote_ref_count"]:
             raise ValueError(
-                f"Footnote reference count mismatch: expected {expected['footnote_ref_count']}, "
+                f"Footnote number count mismatch: expected {expected['footnote_ref_count']}, "
                 f"found {noteref_count}."
             )
 

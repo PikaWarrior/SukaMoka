@@ -551,6 +551,7 @@ def build(args: argparse.Namespace) -> dict:
     check = validate_epub(epub_path, {
         "scene_count": state["scene_count"],
         "footnote_count": len(state["definitions"]),
+        "footnote_ref_count": len(state["refs"]),
         "image_count": len(state["images"]),
     })
     result = {
@@ -633,6 +634,33 @@ def validate_epub(path: Path, expected: dict) -> dict:
                     if parsed.fragment and parsed.fragment not in ids.get(target, set()):
                         raise ValueError(f"Broken fragment in {name}: {value}")
 
+        footnote_targets = {
+            (name, node.attrib["id"])
+            for name, root in roots.items()
+            for node in root.iter()
+            if node.attrib.get("id") and node.attrib.get(f"{{{EPUB}}}type") == "footnote"
+        }
+        noteref_count = 0
+        for name, root in roots.items():
+            if not name.endswith(".xhtml"):
+                continue
+            for node in root.iter():
+                if node.attrib.get(f"{{{EPUB}}}type") != "noteref":
+                    continue
+                href = node.attrib.get("href", "")
+                parsed = urlsplit(href)
+                target = name
+                if parsed.path:
+                    target = posixpath.normpath(posixpath.join(posixpath.dirname(name), parsed.path))
+                if not parsed.fragment or (target, parsed.fragment) not in footnote_targets:
+                    raise ValueError(f"Footnote reference does not target a footnote: {name} -> {href}")
+                noteref_count += 1
+        if noteref_count != expected["footnote_ref_count"]:
+            raise ValueError(
+                f"Footnote reference count mismatch: expected {expected['footnote_ref_count']}, "
+                f"found {noteref_count}."
+            )
+
         visible, scenes, footnotes, images = [], 0, 0, 0
         for name, root in roots.items():
             if not name.startswith("OEBPS/text/") or not name.endswith(".xhtml") or name.endswith("titlepage.xhtml"):
@@ -667,10 +695,12 @@ def validate_epub(path: Path, expected: dict) -> dict:
                 "no_duplicate_ids_within_documents": True,
                 "no_visible_technical_markers": True,
                 "no_adjacent_scene_breaks": True,
+                "footnote_links_target_notes": True,
             },
             "chapter_xhtml_files": sum(1 for n in names if n.startswith("OEBPS/text/part-") and n.endswith(".xhtml")),
             "scene_breaks": scenes,
             "footnotes": footnotes,
+            "footnote_references": noteref_count,
             "illustrations": images,
             "zip_entries": len(names),
             "epub_size_bytes": path.stat().st_size,

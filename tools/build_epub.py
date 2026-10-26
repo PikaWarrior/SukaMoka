@@ -287,7 +287,7 @@ def validate_epub(path: Path, expected: dict) -> dict:
                 continue
             visible.append("".join(root.itertext()))
             scene_count += len(root.findall(f".//{{{XHTML}}}p[@class='scene-break']"))
-            fn_count += len(root.findall(f".//{{{XHTML}}}aside[@{{{EPUB}}}type='footnote']"))
+            fn_count += len(root.findall(f".//{{{XHTML}}}div[@{{{EPUB}}}type='footnote']"))
             image_count += len(root.findall(f".//{{{XHTML}}}img"))
             for main in root.findall(f".//{{{XHTML}}}main"):
                 previous_break = False
@@ -429,46 +429,41 @@ def build(args: argparse.Namespace) -> dict:
                 )
 
         local_refs = [token for token in state["refs"] if token in section]
+        notes_for_part = {}
         for token in local_refs:
             info = state["refs"][token]
-            # Notes live in a separate XHTML document. This gives readers a real,
-            # visible destination even when they do not implement popup footnotes.
-            info["source_href"] = f'{Path(part["path"]).name}#{info["ref_id"]}'
+            notes_for_part.setdefault(info["uid"], {"info": info, "refs": []})
+            notes_for_part[info["uid"]]["refs"].append(info)
             rendered = rendered.replace(
                 token,
                 f'<a epub:type="noteref" role="doc-noteref" id="{info["ref_id"]}" '
-                f'href="notes.xhtml#{info["uid"]}">{info["display"]}</a>',
+                f'href="#{info["uid"]}">{info["display"]}</a>',
+            )
+
+        if notes_for_part:
+            note_blocks = []
+            for uid, note_data in notes_for_part.items():
+                note_html = markdown.markdown(note_data["info"]["definition"], extensions=["extra"])
+                backlinks = " ".join(
+                    f'<a epub:type="backlink" role="doc-backlink" '
+                    f'href="#{html.escape(info["ref_id"], quote=True)}">↩</a>'
+                    for info in note_data["refs"]
+                )
+                if "</p>" in note_html:
+                    note_html = note_html.replace("</p>", f" {backlinks}</p>", 1)
+                else:
+                    note_html += f"<p>{backlinks}</p>"
+                note_blocks.append(
+                    f'<div epub:type="footnote" role="doc-footnote" id="{uid}">{note_html}</div>'
+                )
+            rendered += (
+                '<section class="footnotes" epub:type="endnotes" role="doc-endnotes">'
+                '<h2>Примечания</h2>' + "".join(note_blocks) + '</section>'
             )
 
         if any(t in rendered for t in state["scene_tokens"] | set(state["image_tokens"]) | set(state["refs"])):
             raise ValueError(f"Unresolved placeholder remains in {part['path']}.")
         entries[part["path"]] = xhtml_doc(part["title"], rendered)
-
-    if state["definitions"]:
-        note_asides = []
-        for uid, fn in state["definitions"].items():
-            note_html = markdown.markdown(fn["definition"], extensions=["extra"])
-            references = [
-                info for info in state["refs"].values()
-                if info["uid"] == uid and "source_href" in info
-            ]
-            backlinks = " ".join(
-                f'<a epub:type="backlink" role="doc-backlink" '
-                f'href="{html.escape(info["source_href"], quote=True)}">↩</a>'
-                for info in references
-            )
-            if "</p>" in note_html:
-                note_html = note_html.replace("</p>", f" {backlinks}</p>", 1)
-            else:
-                note_html += f"<p>{backlinks}</p>"
-            note_asides.append(
-                f'<div epub:type="footnote" role="doc-footnote" id="{uid}">{note_html}</div>'
-            )
-        notes_body = (
-            '<main><section class="footnotes" epub:type="endnotes" role="doc-endnotes">'
-            '<h1>Примечания</h1>' + "".join(note_asides) + '</section></main>'
-        )
-        entries["OEBPS/text/notes.xhtml"] = xhtml_doc("Примечания", notes_body)
 
     for resource, source_path in state["images"].items():
         entries[f"OEBPS/images/{resource}"] = source_path.read_bytes()
@@ -481,7 +476,6 @@ def build(args: argparse.Namespace) -> dict:
             f'{html.escape(h["title"])}</a></li>'
         )
     if state["definitions"]:
-        toc_items.append('<li><a href="text/notes.xhtml">Примечания</a></li>')
     nav = (
         '<?xml version="1.0" encoding="utf-8"?>'
         f'<html xmlns="{XHTML}" xmlns:epub="{EPUB}" lang="ru" xml:lang="ru">'
@@ -506,7 +500,6 @@ def build(args: argparse.Namespace) -> dict:
         for i, part in enumerate(parts, 1)
     ]
     if state["definitions"]:
-        manifest.append(("notes", "text/notes.xhtml", "application/xhtml+xml", None))
     for i, resource in enumerate(sorted(state["images"]), 1):
         ext = Path(resource).suffix.lower()
         media = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}.get(ext)
@@ -521,7 +514,6 @@ def build(args: argparse.Namespace) -> dict:
     spine_xml = (
         '<itemref idref="titlepage" />'
         + "".join(f'<itemref idref="part{i:03d}" />' for i in range(1, len(parts) + 1))
-        + ('<itemref idref="notes" />' if state["definitions"] else "")
     )
     opf = (
         '<?xml version="1.0" encoding="utf-8"?>'
@@ -664,7 +656,7 @@ def validate_epub(path: Path, expected: dict) -> dict:
                 continue
             visible.append("".join(root.itertext()))
             scenes += len(root.findall(f".//{{{XHTML}}}p[@class='scene-break']"))
-            footnotes += len(root.findall(f".//{{{XHTML}}}aside[@{{{EPUB}}}type='footnote']"))
+            footnotes += len(root.findall(f".//{{{XHTML}}}div[@{{{EPUB}}}type='footnote']"))
             images += len(root.findall(f".//{{{XHTML}}}img"))
             for body in root.findall(f".//{{{XHTML}}}body"):
                 prev = False

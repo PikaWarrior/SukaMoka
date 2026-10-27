@@ -510,10 +510,11 @@ def build(args: argparse.Namespace) -> dict:
             f'{html.escape(h["title"])}</a></li>'
         )
     cover_href = next((href for doc_id, href, _title, _position in frontmatter_docs if doc_id == "coverpage"), None)
+    toc_href = next((href for doc_id, href, _title, _position in frontmatter_docs if doc_id == "tocart"), None)
     landmarks = (
         '<nav epub:type="landmarks" id="landmarks" hidden="hidden"><h2>Навигация</h2><ol>'
         + (f'<li><a epub:type="cover" href="{html.escape(cover_href, quote=True)}">Обложка</a></li>' if cover_href else "")
-        + '<li><a epub:type="toc" href="nav.xhtml#toc">Содержание</a></li>'
+        + (f'<li><a epub:type="toc" href="{html.escape(toc_href, quote=True)}">Оригинальное содержание</a></li>' if toc_href else "")
         + f'<li><a epub:type="bodymatter" href="{html.escape(parts[0]["path"].replace("OEBPS/", ""), quote=True)}">Основной текст</a></li>'
         + '</ol></nav>'
     )

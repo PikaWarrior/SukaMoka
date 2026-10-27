@@ -465,12 +465,12 @@ def build(args: argparse.Namespace) -> dict:
             entries[f"OEBPS/text/{filename}"] = xhtml_doc(page_title, body)
             frontmatter_docs.append((doc_id, f"text/{filename}", page_title, position))
         titlepage_body = (
-            '<main class="title-page"><h1>SukaSuka / SukaMoca</h1>'
+            '<main class="title-page"><h1>SukaMoka</h1>'
             f'<p class="subtitle">Том {args.volume}</p>'
             '<p>Русский перевод</p></main>'
         )
         entries["OEBPS/text/titlepage.xhtml"] = xhtml_doc(
-            f"SukaMoca — Том {args.volume}", titlepage_body
+            f"SukaMoka — Том {args.volume}", titlepage_body
         )
 
     for part in parts:
@@ -517,31 +517,27 @@ def build(args: argparse.Namespace) -> dict:
         entries[f"OEBPS/images/{resource}"] = source_path.read_bytes()
 
     toc_items = []
-    for h in headings:
-        level_class = "level-3" if h["level"] == 3 else "level-2"
+    # LNReader should expose only the seven top-level book sections in its chapter list:
+    # grouped front matter, five major story sections, and the afterword. Subsection
+    # headings remain in chapter XHTML but are not separate entries in the main TOC.
+    if args.volume == 4:
         toc_items.append(
-            f'<li class="{level_class}"><a href="{html.escape(h["href"], quote=True)}">'
+            '<li class="level-2"><a href="text/frontmatter.xhtml">Обложка и иллюстрации</a></li>'
+        )
+    for h in headings:
+        if h["level"] != 2:
+            continue
+        toc_items.append(
+            f'<li class="level-2"><a href="{html.escape(h["href"], quote=True)}">'
             f'{html.escape(h["title"])}</a></li>'
         )
-    cover_href = next((href for doc_id, href, _title, _position in frontmatter_docs if doc_id in {"coverpage", "frontmatter"}), None)
-    toc_href = (
-        "text/frontmatter.xhtml#original-toc" if args.volume == 4
-        else next((href for doc_id, href, _title, _position in frontmatter_docs if doc_id == "tocart"), None)
-    )
-    landmarks = (
-        '<nav epub:type="landmarks" id="landmarks" hidden="hidden"><h2>Навигация</h2><ol>'
-        + (f'<li><a epub:type="cover" href="{html.escape(cover_href, quote=True)}">Обложка</a></li>' if cover_href else "")
-        + (f'<li><a epub:type="toc" href="{html.escape(toc_href, quote=True)}">Оригинальное содержание</a></li>' if toc_href else "")
-        + f'<li><a epub:type="bodymatter" href="{html.escape(parts[0]["path"].replace("OEBPS/", ""), quote=True)}">Основной текст</a></li>'
-        + '</ol></nav>'
-    )
     nav = (
         '<?xml version="1.0" encoding="utf-8"?>'
         f'<html xmlns="{XHTML}" xmlns:epub="{EPUB}" lang="ru" xml:lang="ru">'
         '<head><meta charset="utf-8" /><title>Содержание</title>'
         '<link rel="stylesheet" type="text/css" href="styles/book.css" /></head>'
         '<body><nav epub:type="toc" id="toc"><h1>Содержание</h1><ol>'
-        + "".join(toc_items) + '</ol></nav>' + landmarks + '</body></html>'
+        + "".join(toc_items) + '</ol></nav></body></html>'
     )
     ET.fromstring(nav.encode("utf-8"))
     entries["OEBPS/nav.xhtml"] = nav.encode("utf-8")
@@ -588,7 +584,7 @@ def build(args: argparse.Namespace) -> dict:
         'xml:lang="ru" prefix="dcterms: http://purl.org/dc/terms/">'
         '<metadata>'
         f'<dc:identifier id="pub-id">{identifier}</dc:identifier>'
-        f'<dc:title>SukaSuka / SukaMoca — Том {args.volume}</dc:title>'
+        f'<dc:title>SukaMoka — Том {args.volume}</dc:title>'
         '<dc:language>ru</dc:language><dc:creator>枯野 瑛</dc:creator>'
         f'<meta property="dcterms:modified">{modified}</meta>'
         '</metadata><manifest>' + manifest_xml + '</manifest><spine>' + spine_xml + '</spine></package>'
@@ -611,7 +607,7 @@ def build(args: argparse.Namespace) -> dict:
         "image_count": len(state["images"]),
     })
     result = {
-        "title": f"SukaSuka / SukaMoca — том {args.volume}",
+        "title": f"SukaMoka — Том {args.volume}",
         "scope": "all_translated_chunks_in_input_directory",
         "input_chunks": [p.name for p in chunks],
         "input_sha256": source_hashes,

@@ -528,15 +528,13 @@ def build(args: argparse.Namespace) -> dict:
     for h in headings:
         if h["level"] != 2:
             continue
-        chapter_number += 1
         nav_title = h["title"]
-        if args.volume == 4:
+        is_afterword = nav_title.strip().lower().startswith("послесловие")
+        if args.volume == 4 and not is_afterword:
             # LNReader derives chapter numbers from the imported navigation title.
-            # Prefix the main sections only; do not alter the visible book headings.
-            if nav_title.lower().startswith("послесловие"):
-                nav_title = f"Глава {chapter_number} — Послесловие"
-            else:
-                nav_title = f"Глава {chapter_number} — {nav_title}"
+            # Number only the five story chapters; the afterword is not a chapter.
+            chapter_number += 1
+            nav_title = f"Глава {chapter_number} — {nav_title}"
         toc_items.append(
             f'<li class="level-2"><a href="{html.escape(h["href"], quote=True)}">'
             f'{html.escape(nav_title)}</a></li>'

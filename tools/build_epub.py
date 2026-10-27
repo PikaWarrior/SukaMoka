@@ -405,59 +405,73 @@ def build(args: argparse.Namespace) -> dict:
         ".footnote-popup-text p { margin: 0; }\n"
         ".footnote-popup:not([open]) .footnote-popup-text { display: none; }\n"
         ".frontmatter-page { margin: 0; padding: 0; page-break-before: always; break-before: page; }\n"
-        ".page-illustration { margin: 0; padding: 0; text-align: center; page-break-inside: avoid; }\n"
+        ".page-illustration { margin: 0; padding: 0; text-align: center; page-break-inside: avoid; page-break-after: always; break-after: page; }\n"
+        ".page-illustration.final-page { page-break-after: auto; break-after: auto; }\n"
         ".page-illustration img { display: block; max-width: 100%; max-height: 95vh; width: auto; height: auto; margin: 0 auto; object-fit: contain; }\n"
         ".title-page { text-align: center; margin-top: 20%; }\n"
         ".title-page .subtitle { font-size: 1.2em; }\n"
-        ".title-page .publisher-logo { display: block; max-width: 45%; height: auto; margin: 2em auto; }\n"
         ".level-3 { margin-left: 1.2em; }\n"
     ).encode()
 
     image_dir = Path("raw") / str(args.volume) / "item" / "image"
     frontmatter_docs: list[tuple[str, str, str, int]] = []
     extra_images: dict[str, Path] = {}
+    titlepage_exists = args.volume != 4
 
-    # Restore the original non-text parts for volume 4 without bringing back
-    # publisher CSS/fonts. Each page remains a simple reflowable XHTML document.
-    frontmatter_specs = [
-        ("coverpage", "cover.xhtml", "Обложка", "cover.jpg", 1),
-        ("kuchie001", "kuchie-001.xhtml", "Цветная иллюстрация", "kuchie-001.jpg", 2),
-        ("kuchie002", "kuchie-002.xhtml", "Цветная иллюстрация", "kuchie-002.jpg", 3),
-        ("tocart", "toc-art.xhtml", "Иллюстрированное содержание", "toc-001.jpg", 5),
-    ]
-    for doc_id, filename, page_title, resource, position in frontmatter_specs:
-        source_path = image_dir / resource
-        if not source_path.is_file():
-            if args.volume == 4:
+    if args.volume == 4:
+        # One navigation/spine item groups original pages 1, 2, 3 and 5.
+        # The artificial title-page item (previously item 4) is deliberately omitted.
+        frontmatter_specs = [
+            ("cover.jpg", "Обложка", "cover-page"),
+            ("kuchie-001.jpg", "Цветная иллюстрация", "kuchie-001"),
+            ("kuchie-002.jpg", "Цветная иллюстрация", "kuchie-002"),
+            ("toc-001.jpg", "Оригинальное содержание", "original-toc"),
+        ]
+        image_figures = []
+        for index, (resource, alt_text, anchor_id) in enumerate(frontmatter_specs):
+            source_path = image_dir / resource
+            if not source_path.is_file():
                 raise FileNotFoundError(f"Required original front-matter image is missing: {source_path}")
-            continue
-        extra_images[resource] = source_path
-        body = (
-            '<main class="frontmatter-page"><figure class="page-illustration">'
-            f'<img src="../images/{html.escape(resource, quote=True)}" alt="{html.escape(page_title, quote=True)}" />'
-            '</figure></main>'
+            extra_images[resource] = source_path
+            final_class = " final-page" if index == len(frontmatter_specs) - 1 else ""
+            image_figures.append(
+                f'<figure id="{anchor_id}" class="page-illustration{final_class}">'
+                f'<img src="../images/{html.escape(resource, quote=True)}" alt="{html.escape(alt_text, quote=True)}" />'
+                '</figure>'
+            )
+        body = '<main class="frontmatter-page">' + ''.join(image_figures) + '</main>'
+        entries["OEBPS/text/frontmatter.xhtml"] = xhtml_doc(
+            "Обложка и иллюстрации", body
         )
-        entries[f"OEBPS/text/{filename}"] = xhtml_doc(page_title, body)
-        frontmatter_docs.append((doc_id, f"text/{filename}", page_title, position))
-
-    logo_path = image_dir / "logo-sneaker.png"
-    logo_html = ""
-    if logo_path.is_file():
-        extra_images["logo-sneaker.png"] = logo_path
-        logo_html = '<img class="publisher-logo" src="../images/logo-sneaker.png" alt="" />'
-    elif args.volume == 4:
-        raise FileNotFoundError(f"Required original title-page logo is missing: {logo_path}")
-
-    titlepage_body = (
-        '<main class="title-page"><h1>SukaSuka / SukaMoca</h1>'
-        f'<p class="subtitle">Том {args.volume}</p>'
-        '<p>Русский перевод</p>'
-        + logo_html
-        + '</main>'
-    )
-    entries["OEBPS/text/titlepage.xhtml"] = xhtml_doc(
-        f"SukaMoca — Том {args.volume}", titlepage_body
-    )
+        frontmatter_docs.append(("frontmatter", "text/frontmatter.xhtml", "Обложка и иллюстрации", 1))
+    else:
+        # Keep the generic builder's previous behavior for other volumes.
+        frontmatter_specs = [
+            ("coverpage", "cover.xhtml", "Обложка", "cover.jpg", 1),
+            ("kuchie001", "kuchie-001.xhtml", "Цветная иллюстрация", "kuchie-001.jpg", 2),
+            ("kuchie002", "kuchie-002.xhtml", "Цветная иллюстрация", "kuchie-002.jpg", 3),
+            ("tocart", "toc-art.xhtml", "Иллюстрированное содержание", "toc-001.jpg", 5),
+        ]
+        for doc_id, filename, page_title, resource, position in frontmatter_specs:
+            source_path = image_dir / resource
+            if not source_path.is_file():
+                continue
+            extra_images[resource] = source_path
+            body = (
+                '<main class="frontmatter-page"><figure class="page-illustration">'
+                f'<img src="../images/{html.escape(resource, quote=True)}" alt="{html.escape(page_title, quote=True)}" />'
+                '</figure></main>'
+            )
+            entries[f"OEBPS/text/{filename}"] = xhtml_doc(page_title, body)
+            frontmatter_docs.append((doc_id, f"text/{filename}", page_title, position))
+        titlepage_body = (
+            '<main class="title-page"><h1>SukaSuka / SukaMoca</h1>'
+            f'<p class="subtitle">Том {args.volume}</p>'
+            '<p>Русский перевод</p></main>'
+        )
+        entries["OEBPS/text/titlepage.xhtml"] = xhtml_doc(
+            f"SukaMoca — Том {args.volume}", titlepage_body
+        )
 
     for part in parts:
         section = part["text"]
@@ -510,7 +524,10 @@ def build(args: argparse.Namespace) -> dict:
             f'{html.escape(h["title"])}</a></li>'
         )
     cover_href = next((href for doc_id, href, _title, _position in frontmatter_docs if doc_id == "coverpage"), None)
-    toc_href = next((href for doc_id, href, _title, _position in frontmatter_docs if doc_id == "tocart"), None)
+    toc_href = (
+        "text/frontmatter.xhtml#original-toc" if args.volume == 4
+        else next((href for doc_id, href, _title, _position in frontmatter_docs if doc_id == "tocart"), None)
+    )
     landmarks = (
         '<nav epub:type="landmarks" id="landmarks" hidden="hidden"><h2>Навигация</h2><ol>'
         + (f'<li><a epub:type="cover" href="{html.escape(cover_href, quote=True)}">Обложка</a></li>' if cover_href else "")
@@ -540,7 +557,8 @@ def build(args: argparse.Namespace) -> dict:
         (doc_id, href, "application/xhtml+xml", None)
         for doc_id, href, _page_title, _position in frontmatter_docs
     ]
-    manifest.append(('titlepage', 'text/titlepage.xhtml', 'application/xhtml+xml', None))
+    if titlepage_exists:
+        manifest.append(('titlepage', 'text/titlepage.xhtml', 'application/xhtml+xml', None))
     manifest += [
         (f"part{i:03d}", part["path"].replace("OEBPS/", ""), "application/xhtml+xml", None)
         for i, part in enumerate(parts, 1)
@@ -558,12 +576,8 @@ def build(args: argparse.Namespace) -> dict:
         for ident, href, media, props in manifest
     )
     ordered_frontmatter_ids = [
-        doc_id for doc_id, _href, _page_title, position in sorted(frontmatter_docs, key=lambda item: item[3])
-        if position < 4
-    ] + ["titlepage"] + [
-        doc_id for doc_id, _href, _page_title, position in sorted(frontmatter_docs, key=lambda item: item[3])
-        if position >= 4
-    ]
+        doc_id for doc_id, _href, _page_title, _position in sorted(frontmatter_docs, key=lambda item: item[3])
+    ] + (["titlepage"] if titlepage_exists else [])
     spine_xml = (
         "".join(f'<itemref idref="{doc_id}" />' for doc_id in ordered_frontmatter_ids)
         + "".join(f'<itemref idref="part{i:03d}" />' for i in range(1, len(parts) + 1))
@@ -605,6 +619,7 @@ def build(args: argparse.Namespace) -> dict:
         "scene_breaks": state["scene_count"],
         "illustration_resources": sorted(state["images"]),
         "front_matter_images": sorted(extra_images),
+        "front_matter_grouped_into_one_spine_item": args.volume == 4,
         "spine_sections": [*ordered_frontmatter_ids, *[f"part{i:03d}" for i in range(1, len(parts) + 1)]],
         "image_markers": list(state["image_markers"].values()) if isinstance(state["image_markers"], dict) else state["image_markers"],
         "footnotes": [

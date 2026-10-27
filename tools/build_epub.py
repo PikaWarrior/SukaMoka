@@ -283,7 +283,7 @@ def validate_epub(path: Path, expected: dict) -> dict:
 
         visible, scene_count, fn_count, image_count = [], 0, 0, 0
         for name, root in roots.items():
-            if not name.startswith("OEBPS/text/") or not name.endswith(".xhtml") or name.endswith("titlepage.xhtml"):
+            if not name.startswith("OEBPS/text/part-") or not name.endswith(".xhtml"):
                 continue
             visible.append("".join(root.itertext()))
             scene_count += len(root.findall(f".//{{{XHTML}}}p[@class='scene-break']"))
@@ -693,7 +693,7 @@ def validate_epub(path: Path, expected: dict) -> dict:
 
         visible, scenes, footnotes, images = [], 0, 0, 0
         for name, root in roots.items():
-            if not name.startswith("OEBPS/text/") or not name.endswith(".xhtml") or name.endswith("titlepage.xhtml"):
+            if not name.startswith("OEBPS/text/part-") or not name.endswith(".xhtml"):
                 continue
             visible.append("".join(root.itertext()))
             scenes += len(root.findall(f".//{{{XHTML}}}p[@class='scene-break']"))

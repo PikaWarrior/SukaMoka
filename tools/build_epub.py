@@ -482,7 +482,7 @@ def build(args: argparse.Namespace) -> dict:
                 token,
                 f'<details class="footnote-popup" id="{info["ref_id"]}" data-footnote-id="{info["uid"]}">'
                 f'<summary>{info["display"]}</summary>'
-                f'<span class="footnote-popup-text">{note_html}</span></details>',
+                f'<div class="footnote-popup-text">{note_html}</div></details>',
             )
 
         # EPUB reading engines may treat <details> as a block if nested in <p>.

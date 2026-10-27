@@ -523,7 +523,7 @@ def build(args: argparse.Namespace) -> dict:
             f'<li class="{level_class}"><a href="{html.escape(h["href"], quote=True)}">'
             f'{html.escape(h["title"])}</a></li>'
         )
-    cover_href = next((href for doc_id, href, _title, _position in frontmatter_docs if doc_id == "coverpage"), None)
+    cover_href = next((href for doc_id, href, _title, _position in frontmatter_docs if doc_id in {"coverpage", "frontmatter"}), None)
     toc_href = (
         "text/frontmatter.xhtml#original-toc" if args.volume == 4
         else next((href for doc_id, href, _title, _position in frontmatter_docs if doc_id == "tocart"), None)

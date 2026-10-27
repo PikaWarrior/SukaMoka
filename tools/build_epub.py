@@ -287,7 +287,7 @@ def validate_epub(path: Path, expected: dict) -> dict:
                 continue
             visible.append("".join(root.itertext()))
             scene_count += len(root.findall(f".//{{{XHTML}}}p[@class='scene-break']"))
-            fn_count += sum(1 for node in root.iter() if node.attrib.get("class") == "footnote")
+            fn_count += len({node.attrib.get("data-footnote-id") for node in root.iter() if node.attrib.get("class") == "footnote-popup" and node.attrib.get("data-footnote-id")})
             image_count += len(root.findall(f".//{{{XHTML}}}img"))
             for main in root.findall(f".//{{{XHTML}}}main"):
                 previous_break = False
@@ -397,18 +397,63 @@ def build(args: argparse.Namespace) -> dict:
         ".scene-break { text-align: center; margin: 1.2em 0; text-indent: 0; }\n"
         "figure.illustration { margin: 1em 0; padding: 0; text-align: center; page-break-inside: avoid; }\n"
         "figure.illustration img { max-width: 100%; height: auto; display: block; margin: 0 auto; }\n"
-        ".footnotes { margin-top: 2em; border-top: 1px solid currentColor; padding-top: 0.8em; }\n"
-        ".footnotes [role=\"doc-footnote\"] { display: block; font-size: 0.9em; margin: 0.8em 0; }\n"
-        ".footnotes a { text-decoration: none; }\n"
-        ".level-3 { margin-left: 1.2em; }\n"
+        ".footnote-containing-paragraph { display: block; margin: 1em 0; text-indent: 0; }\n"
+        ".footnote-popup { display: inline !important; position: relative; font-size: 0.75em; vertical-align: super; }\n"
+        ".footnote-popup summary { display: inline !important; cursor: pointer; list-style: none; text-decoration: underline; }\n"
+        ".footnote-popup summary::-webkit-details-marker { display: none; }\n"
+        ".footnote-popup-text { display: block; position: absolute; z-index: 100; left: 0; top: 1.2em; width: 20em; max-width: 72vw; box-sizing: border-box; font-size: 1.25em; line-height: 1.35; vertical-align: baseline; border: 1px solid currentColor; background-color: #2b2a33; color: #dddddf; padding: 0.45em 0.6em; margin: 0; }\n"
+        ".footnote-popup-text p { margin: 0; }\n"
+        ".footnote-popup:not([open]) .footnote-popup-text { display: none; }\n"
+        ".frontmatter-page { margin: 0; padding: 0; page-break-before: always; break-before: page; }\n"
+        ".page-illustration { margin: 0; padding: 0; text-align: center; page-break-inside: avoid; }\n"
+        ".page-illustration img { display: block; max-width: 100%; max-height: 95vh; width: auto; height: auto; margin: 0 auto; object-fit: contain; }\n"
         ".title-page { text-align: center; margin-top: 20%; }\n"
         ".title-page .subtitle { font-size: 1.2em; }\n"
+        ".title-page .publisher-logo { display: block; max-width: 45%; height: auto; margin: 2em auto; }\n"
+        ".level-3 { margin-left: 1.2em; }\n"
     ).encode()
+
+    image_dir = Path("raw") / str(args.volume) / "item" / "image"
+    frontmatter_docs: list[tuple[str, str, str, int]] = []
+    extra_images: dict[str, Path] = {}
+
+    # Restore the original non-text parts for volume 4 without bringing back
+    # publisher CSS/fonts. Each page remains a simple reflowable XHTML document.
+    frontmatter_specs = [
+        ("coverpage", "cover.xhtml", "Обложка", "cover.jpg", 1),
+        ("kuchie001", "kuchie-001.xhtml", "Цветная иллюстрация", "kuchie-001.jpg", 2),
+        ("kuchie002", "kuchie-002.xhtml", "Цветная иллюстрация", "kuchie-002.jpg", 3),
+        ("tocart", "toc-art.xhtml", "Иллюстрированное содержание", "toc-001.jpg", 5),
+    ]
+    for doc_id, filename, page_title, resource, position in frontmatter_specs:
+        source_path = image_dir / resource
+        if not source_path.is_file():
+            if args.volume == 4:
+                raise FileNotFoundError(f"Required original front-matter image is missing: {source_path}")
+            continue
+        extra_images[resource] = source_path
+        body = (
+            '<main class="frontmatter-page"><figure class="page-illustration">'
+            f'<img src="../images/{html.escape(resource, quote=True)}" alt="{html.escape(page_title, quote=True)}" />'
+            '</figure></main>'
+        )
+        entries[f"OEBPS/text/{filename}"] = xhtml_doc(page_title, body)
+        frontmatter_docs.append((doc_id, f"text/{filename}", page_title, position))
+
+    logo_path = image_dir / "logo-sneaker.png"
+    logo_html = ""
+    if logo_path.is_file():
+        extra_images["logo-sneaker.png"] = logo_path
+        logo_html = '<img class="publisher-logo" src="../images/logo-sneaker.png" alt="" />'
+    elif args.volume == 4:
+        raise FileNotFoundError(f"Required original title-page logo is missing: {logo_path}")
 
     titlepage_body = (
         '<main class="title-page"><h1>SukaSuka / SukaMoca</h1>'
         f'<p class="subtitle">Том {args.volume}</p>'
-        '<p>Русский перевод</p></main>'
+        '<p>Русский перевод</p>'
+        + logo_html
+        + '</main>'
     )
     entries["OEBPS/text/titlepage.xhtml"] = xhtml_doc(
         f"SukaMoca — Том {args.volume}", titlepage_body
@@ -430,35 +475,31 @@ def build(args: argparse.Namespace) -> dict:
 
         part_filename = Path(part["path"]).name
         local_refs = [token for token in state["refs"] if token in section]
-        notes_for_part = {}
         for token in local_refs:
             info = state["refs"][token]
-            notes_for_part.setdefault(info["uid"], {"info": info, "refs": []})
-            notes_for_part[info["uid"]]["refs"].append(info)
+            note_html = markdown.markdown(info["definition"], extensions=["extra"])
             rendered = rendered.replace(
                 token,
-                f'<sup class="footnote-ref">{info["display"]}</sup>',
+                f'<details class="footnote-popup" id="{info["ref_id"]}" data-footnote-id="{info["uid"]}">'
+                f'<summary>{info["display"]}</summary>'
+                f'<span class="footnote-popup-text">{note_html}</span></details>',
             )
 
-        if notes_for_part:
-            note_blocks = []
-            for uid, note_data in notes_for_part.items():
-                note_html = markdown.markdown(note_data["info"]["definition"], extensions=["extra"])
-                note_blocks.append(
-                    f'<div class="footnote"><p><strong>{note_data["info"]["display"]}.</strong></p>'
-                    + note_html
-                    + '</div>'
-                )
-            rendered += (
-                '<section class="footnotes">'
-                '<h2>Примечания</h2>' + "".join(note_blocks) + '</section>'
-            )
+        # EPUB reading engines may treat <details> as a block if nested in <p>.
+        # Move only paragraphs containing popups to a div to keep the marker inline.
+        rendered = re.sub(
+            r'<p>(?:(?!<p>).)*?<details class="footnote-popup".*?</details>(?:(?!</p>).)*?</p>',
+            lambda match: '<div class="footnote-containing-paragraph">' + match.group(0)[3:-4] + '</div>',
+            rendered,
+            flags=re.S,
+        )
 
         if any(t in rendered for t in state["scene_tokens"] | set(state["image_tokens"]) | set(state["refs"])):
             raise ValueError(f"Unresolved placeholder remains in {part['path']}.")
         entries[part["path"]] = xhtml_doc(part["title"], rendered)
 
-    for resource, source_path in state["images"].items():
+    all_images = {**extra_images, **state["images"]}
+    for resource, source_path in all_images.items():
         entries[f"OEBPS/images/{resource}"] = source_path.read_bytes()
 
     toc_items = []
@@ -468,13 +509,21 @@ def build(args: argparse.Namespace) -> dict:
             f'<li class="{level_class}"><a href="{html.escape(h["href"], quote=True)}">'
             f'{html.escape(h["title"])}</a></li>'
         )
+    cover_href = next((href for doc_id, href, _title, _position in frontmatter_docs if doc_id == "coverpage"), None)
+    landmarks = (
+        '<nav epub:type="landmarks" id="landmarks" hidden="hidden"><h2>Навигация</h2><ol>'
+        + (f'<li><a epub:type="cover" href="{html.escape(cover_href, quote=True)}">Обложка</a></li>' if cover_href else "")
+        + '<li><a epub:type="toc" href="nav.xhtml#toc">Содержание</a></li>'
+        + f'<li><a epub:type="bodymatter" href="{html.escape(parts[0]["path"].replace("OEBPS/", ""), quote=True)}">Основной текст</a></li>'
+        + '</ol></nav>'
+    )
     nav = (
         '<?xml version="1.0" encoding="utf-8"?>'
         f'<html xmlns="{XHTML}" xmlns:epub="{EPUB}" lang="ru" xml:lang="ru">'
         '<head><meta charset="utf-8" /><title>Содержание</title>'
         '<link rel="stylesheet" type="text/css" href="styles/book.css" /></head>'
         '<body><nav epub:type="toc" id="toc"><h1>Содержание</h1><ol>'
-        + "".join(toc_items) + '</ol></nav></body></html>'
+        + "".join(toc_items) + '</ol></nav>' + landmarks + '</body></html>'
     )
     ET.fromstring(nav.encode("utf-8"))
     entries["OEBPS/nav.xhtml"] = nav.encode("utf-8")
@@ -485,25 +534,37 @@ def build(args: argparse.Namespace) -> dict:
     manifest = [
         ('nav', 'nav.xhtml', 'application/xhtml+xml', 'nav'),
         ('css', 'styles/book.css', 'text/css', None),
-        ('titlepage', 'text/titlepage.xhtml', 'application/xhtml+xml', None),
     ]
+    manifest += [
+        (doc_id, href, "application/xhtml+xml", None)
+        for doc_id, href, _page_title, _position in frontmatter_docs
+    ]
+    manifest.append(('titlepage', 'text/titlepage.xhtml', 'application/xhtml+xml', None))
     manifest += [
         (f"part{i:03d}", part["path"].replace("OEBPS/", ""), "application/xhtml+xml", None)
         for i, part in enumerate(parts, 1)
     ]
-    for i, resource in enumerate(sorted(state["images"]), 1):
+    for i, resource in enumerate(sorted(all_images), 1):
         ext = Path(resource).suffix.lower()
         media = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}.get(ext)
         if not media:
             raise ValueError(f"Unsupported image format: {resource}")
-        manifest.append((f"image{i:03d}", f"images/{resource}", media, None))
+        props = "cover-image" if resource == "cover.jpg" else None
+        manifest.append((f"image{i:03d}", f"images/{resource}", media, props))
     manifest_xml = "".join(
         f'<item id="{ident}" href="{html.escape(href, quote=True)}" media-type="{media}"'
         + (f' properties="{props}"' if props else "") + " />"
         for ident, href, media, props in manifest
     )
+    ordered_frontmatter_ids = [
+        doc_id for doc_id, _href, _page_title, position in sorted(frontmatter_docs, key=lambda item: item[3])
+        if position < 4
+    ] + ["titlepage"] + [
+        doc_id for doc_id, _href, _page_title, position in sorted(frontmatter_docs, key=lambda item: item[3])
+        if position >= 4
+    ]
     spine_xml = (
-        '<itemref idref="titlepage" />'
+        "".join(f'<itemref idref="{doc_id}" />' for doc_id in ordered_frontmatter_ids)
         + "".join(f'<itemref idref="part{i:03d}" />' for i in range(1, len(parts) + 1))
     )
     opf = (
@@ -542,6 +603,8 @@ def build(args: argparse.Namespace) -> dict:
         "chat_citation_tags_removed": state["citation_tags_removed"],
         "scene_breaks": state["scene_count"],
         "illustration_resources": sorted(state["images"]),
+        "front_matter_images": sorted(extra_images),
+        "spine_sections": [*ordered_frontmatter_ids, *[f"part{i:03d}" for i in range(1, len(parts) + 1)]],
         "image_markers": list(state["image_markers"].values()) if isinstance(state["image_markers"], dict) else state["image_markers"],
         "footnotes": [
             {"id": info["uid"], "source_chunk": info["source_chunk"], "text": info["definition"]}
@@ -619,8 +682,8 @@ def validate_epub(path: Path, expected: dict) -> dict:
             for name, root in roots.items()
             if name.endswith(".xhtml")
             for node in root.iter()
-            if node.tag == f"{{{XHTML}}}sup"
-            and node.attrib.get("class") == "footnote-ref"
+            if node.tag == f"{{{XHTML}}}details"
+            and node.attrib.get("class") == "footnote-popup"
         )
         if noteref_count != expected["footnote_ref_count"]:
             raise ValueError(
@@ -634,7 +697,7 @@ def validate_epub(path: Path, expected: dict) -> dict:
                 continue
             visible.append("".join(root.itertext()))
             scenes += len(root.findall(f".//{{{XHTML}}}p[@class='scene-break']"))
-            footnotes += sum(1 for node in root.iter() if node.attrib.get("class") == "footnote")
+            footnotes += len({node.attrib.get("data-footnote-id") for node in root.iter() if node.attrib.get("class") == "footnote-popup" and node.attrib.get("data-footnote-id")})
             images += len(root.findall(f".//{{{XHTML}}}img"))
             for body in root.findall(f".//{{{XHTML}}}body"):
                 prev = False

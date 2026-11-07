@@ -22,6 +22,7 @@ DC = "http://purl.org/dc/elements/1.1/"
 NS = {"opf": OPF, "dc": DC}
 SKIP_DOCS = {"toc.xhtml", "nav.xhtml"}
 BLOCK_TAGS = {"p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "ul", "ol", "li", "hr"}
+CONTAINER_TAGS = {"body", "div", "section", "article", "main", "table", "thead", "tbody", "tfoot", "tr", "figure", "header", "footer"}
 EXTERNAL_SCHEMES = {"http", "https", "mailto", "tel", "data"}
 BT = chr(96)
 
@@ -224,7 +225,7 @@ class EnglishExtractor:
             pending.append(node.text)
         for child in node:
             child_tag = local_name(child)
-            if child_tag in BLOCK_TAGS or child_tag in {"img", "image"}:
+            if child_tag in BLOCK_TAGS or child_tag in CONTAINER_TAGS or child_tag in {"img", "image"}:
                 flush()
                 output.extend(self.render_blocks(child, source_rel))
             else:

@@ -138,7 +138,7 @@ class EnglishExtractor:
         if not src:
             self.warnings.append(f"Image without src in {source_rel}")
             return "[[EN_EPUB_IMAGE:missing-source]]"
-        target = self.resolve_href((self.oebps / source_rel).parent, src)
+        target = self.resolve_href((self.source_dir / source_rel).parent, src)
         if target is None:
             self.warnings.append(f"Unresolved image path in {source_rel}: {src}")
             return "[[EN_EPUB_IMAGE:unresolved]]"
@@ -257,6 +257,10 @@ class EnglishExtractor:
         lang = html_root.get("lang") or html_root.get("{http://www.w3.org/XML/1998/namespace}lang")
         if lang:
             self.language_values.add(lang)
+            if not lang.lower().startswith("en"):
+                warning = f"XHTML language attribute is {lang!r} in {source_rel}, while the OPF declares English."
+                if warning not in self.warnings:
+                    self.warnings.append(warning)
         bodies = tree.xpath("//*[local-name()='body']")
         if not bodies:
             self.warnings.append(f"No body element in {source_rel}")

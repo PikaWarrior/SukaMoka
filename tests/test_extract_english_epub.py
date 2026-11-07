@@ -60,8 +60,10 @@ class EnglishExtractorTests(unittest.TestCase):
         )
         (self.source / "chapter001a.xhtml").write_text(
             """<html xmlns="http://www.w3.org/1999/xhtml" lang="en"><body>
-            <h1>First Chapter</h1><h2>-chapter subtitle-</h2>
-            <p>He <em>spoke</em> with <strong>care</strong>.</p>
+            <div class="galley-rw"><section class="body-rw">
+              <h1>First Chapter</h1><h2>-chapter subtitle-</h2>
+              <div class="text-wrapper"><p>He <em>spoke</em> with <strong>care</strong>.</p></div>
+            </section></div>
             </body></html>""",
             encoding="utf-8",
         )
@@ -77,6 +79,8 @@ class EnglishExtractorTests(unittest.TestCase):
 
         self.assertEqual(result["errors"], 0)
         self.assertEqual(result["image_occurrences"], 2)
+        self.assertEqual(result["paragraphs"], 1)
+        self.assertEqual(result["headings"], 2)
         self.assertIn("[[EN_EPUB_IMAGE:v01:OEBPS/cover.xhtml:OEBPS/images/cover.jpg:occ-0001]]", text)
         self.assertIn("[[EN_EPUB_IMAGE:v01:OEBPS/chapter001.xhtml:OEBPS/images/chapter.jpg:occ-0002]]", text)
         self.assertIn("## First Chapter", text)

@@ -1,0 +1,82 @@
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" xml:lang="en" unique-identifier="pub-id">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title id="id">WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. 1</dc:title>
+    <dc:creator id="id-1">Akira Kareno</dc:creator>
+    <dc:creator id="id-2">ue</dc:creator>
+    <dc:identifier>uuid:77c4f1cb-a0d5-4d95-af5a-6f3616634b9a</dc:identifier>
+    <dc:identifier id="pub-id">9784041040409</dc:identifier>
+    <dc:language>en</dc:language>
+    <dc:publisher>Orlandri Translation Company</dc:publisher>
+    <meta refines="#id" property="title-type">main</meta>
+    <meta refines="#id" property="file-as">WorldEnd2: What Do You Do at the End of the World? Could We Meet Again Once More?, Vol. 1</meta>
+    <meta property="dcterms:modified">2026-04-21T04:40:27Z</meta>
+    <meta refines="#id-1" property="role" scheme="marc:relators">aut</meta>
+    <meta refines="#id-1" property="file-as">Kareno, Akira</meta>
+    <meta refines="#id-2" property="role" scheme="marc:relators">aut</meta>
+    <meta refines="#id-2" property="file-as">ue</meta>
+  </metadata>
+  <manifest>
+    <item href="cover.xhtml" id="id_cover_xhtml" media-type="application/xhtml+xml"/>
+    <item href="insert001.xhtml" id="insert001" media-type="application/xhtml+xml"/>
+    <item href="insert002.xhtml" id="insert002" media-type="application/xhtml+xml"/>
+    <item href="insert003.xhtml" id="insert003" media-type="application/xhtml+xml"/>
+    <item href="insert004.xhtml" id="insert004" media-type="application/xhtml+xml"/>
+    <item href="insert005.xhtml" id="insert005" media-type="application/xhtml+xml"/>
+    <item href="titlepage.xhtml" id="titlepage" media-type="application/xhtml+xml"/>
+    <item href="toc.xhtml" id="toc" media-type="application/xhtml+xml"/>
+    <item href="chapter001.xhtml" id="chapter001" media-type="application/xhtml+xml"/>
+    <item href="chapter001a.xhtml" id="chapter001a" media-type="application/xhtml+xml"/>
+    <item href="chapter002.xhtml" id="chapter002" media-type="application/xhtml+xml"/>
+    <item href="chapter002a.xhtml" id="chapter002a" media-type="application/xhtml+xml"/>
+    <item href="chapter003.xhtml" id="chapter003" media-type="application/xhtml+xml"/>
+    <item href="chapter003a.xhtml" id="chapter003a" media-type="application/xhtml+xml"/>
+    <item href="chapter004.xhtml" id="chapter004" media-type="application/xhtml+xml"/>
+    <item href="chapter004a.xhtml" id="chapter004a" media-type="application/xhtml+xml"/>
+    <item href="chapter005.xhtml" id="chapter005" media-type="application/xhtml+xml"/>
+    <item href="chapter005a.xhtml" id="chapter005a" media-type="application/xhtml+xml"/>
+    <item href="nav.xhtml" id="nav" media-type="application/xhtml+xml" properties="nav"/>
+    <item href="toc.ncx" id="ncx" media-type="application/x-dtbncx+xml"/>
+    <item href="css/stylesheet.css" id="id_chapter_1_style_css" media-type="text/css"/>
+    <item href="images/9784041040409.jpg" id="acover" media-type="image/jpeg" properties="cover-image"/>
+    <item href="images/Art_copy.jpg" id="aArt_copy" media-type="image/jpeg"/>
+    <item href="images/Art_insert001.jpg" id="aArt_insert001" media-type="image/jpeg"/>
+    <item href="images/Art_insert002.jpg" id="aArt_insert002" media-type="image/jpeg"/>
+    <item href="images/Art_insert003.jpg" id="aArt_insert003" media-type="image/jpeg"/>
+    <item href="images/Art_insert004.jpg" id="aArt_insert004" media-type="image/jpeg"/>
+    <item href="images/Art_insert005.jpg" id="aArt_insert005" media-type="image/jpeg"/>
+    <item href="images/Art_line1.jpg" id="aArt_line1" media-type="image/jpeg"/>
+    <item href="images/Art_chapter001.jpg" id="aArt_chapter001" media-type="image/jpeg"/>
+    <item href="images/Art_chapter002.jpg" id="aArt_chapter002" media-type="image/jpeg"/>
+    <item href="images/Art_chapter003.jpg" id="aArt_chapter003" media-type="image/jpeg"/>
+    <item href="images/Art_chapter004.jpg" id="aArt_chapter004" media-type="image/jpeg"/>
+    <item href="images/Art_chapter005.jpg" id="aArt_chapter005" media-type="image/jpeg"/>
+    <item href="images/Art_sborn.jpg" id="aArt_sborn" media-type="image/jpeg"/>
+    <item href="images/Art_tit.jpg" id="aArt_tit" media-type="image/jpeg"/>
+  </manifest>
+  <spine page-progression-direction="ltr" toc="ncx">
+    <itemref idref="id_cover_xhtml" linear="yes"/>
+    <itemref idref="insert001" linear="yes"/>
+    <itemref idref="insert002" linear="yes"/>
+    <itemref idref="insert003" linear="yes"/>
+    <itemref idref="insert004" linear="yes"/>
+    <itemref idref="insert005" linear="yes"/>
+    <itemref idref="titlepage" linear="yes"/>
+    <itemref idref="toc" linear="yes"/>
+    <itemref idref="chapter001" linear="yes"/>
+    <itemref idref="chapter001a" linear="yes"/>
+    <itemref idref="chapter002" linear="yes"/>
+    <itemref idref="chapter002a" linear="yes"/>
+    <itemref idref="chapter003" linear="yes"/>
+    <itemref idref="chapter003a" linear="yes"/>
+    <itemref idref="chapter004" linear="yes"/>
+    <itemref idref="chapter004a" linear="yes"/>
+    <itemref idref="chapter005" linear="yes"/>
+    <itemref idref="chapter005a" linear="yes"/>
+  </spine>
+  <guide>
+    <reference type="start" title="Begin Reading" href="cover.xhtml"/>
+    <reference type="text" title="Begin Reading" href="toc.xhtml"/>
+    <reference type="toc" title="Table of Contents" href="toc.xhtml"/>
+    <reference type="cover" title="Cover Image" href="cover.xhtml"/>
+  </guide>
+</package>

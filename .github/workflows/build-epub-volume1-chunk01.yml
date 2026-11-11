@@ -1,0 +1,65 @@
+name: Build EPUB preview — volume 1, chunk 01
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "translated chunks/volume1/chunk_01_ru.md"
+      - "completed_volumes/volume1_report.md"
+      - "tools/build_epub.py"
+      - ".github/workflows/build-epub-volume1-chunk01.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-volume1-chunk01:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Markdown renderer
+        run: python -m pip install "Markdown>=3.7,<4"
+
+      - name: Check builder syntax
+        run: python -m py_compile tools/build_epub.py
+
+      - name: Build EPUB from the translated chunk directory
+        run: |
+          python tools/build_epub.py \
+            --volume 1 \
+            --chunk-dir "translated chunks/volume1" \
+            --report completed_volumes/volume1_report.md \
+            --output-dir dist
+
+      - name: Set up Java for EPUBCheck
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Validate EPUB with official EPUBCheck
+        run: |
+          curl -fsSL https://github.com/w3c/epubcheck/releases/download/v5.4.0/epubcheck-5.4.0.zip -o /tmp/epubcheck.zip
+          mkdir -p /tmp/epubcheck
+          unzip -q /tmp/epubcheck.zip -d /tmp/epubcheck
+          JAR="$(find /tmp/epubcheck -name epubcheck.jar -print -quit)"
+          test -n "$JAR"
+          java -jar "$JAR" dist/SukaMoca_v1_ru.epub
+
+      - name: Upload EPUB and build report
+        uses: actions/upload-artifact@v4
+        with:
+          name: sukamoka-v1-chunk01-preview
+          path: |
+            dist/SukaMoca_v1_ru.epub
+            dist/SukaMoca_v1_ru_report.json
+          if-no-files-found: error
+          retention-days: 14
